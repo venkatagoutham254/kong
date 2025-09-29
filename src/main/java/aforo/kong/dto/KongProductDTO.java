@@ -11,6 +11,9 @@ import java.util.Map;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KongProductDTO {
+    @JsonProperty("internal_id")
+    private Long internalId;
+    
     private String id;
     private String name;
     private String description;
@@ -35,4 +38,6 @@ public class KongProductDTO {
 
     @JsonProperty("updated_at")
     private Instant updatedAt;
+
+    private Long organizationId;
 }

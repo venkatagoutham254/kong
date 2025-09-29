@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: kong-add-tenancy
+      author: aforo.ai
+      changes:
+        - addColumn:
+            tableName: kong_product
+            columns:
+              - column:
+                  name: organization_id
+                  type: bigint
+                  constraints:
+                    nullable: false

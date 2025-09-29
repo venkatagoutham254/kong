@@ -4,6 +4,8 @@ server:
 spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
+    date-format: dd MMM, yyyy HH:mm z
+    time-zone: Asia/Kolkata     
     
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/kong}
@@ -24,6 +26,17 @@ spring:
 logging:
   level:
     org.springframework.web.client.RestTemplate: INFO
+    aforo.kong.security: DEBUG
 
-kong:
-  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://localhost:8081/mock/api/details}
+aforo:
+  jwt:
+    issuer: aforo-kong
+    secret: ${JWT_SECRET:change-me-please-change-me-32-bytes-min}  # env var or fallback
+    expiryMinutes: 120
+  cors:
+    # Comma-separated list; used by SecurityConfig.corsConfigurationSource()
+    # Include your frontend origin(s). Add https variants if applicable.
+    allowed-origins: "http://13.115.248.133,http://localhost:3000"
+    allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    allowed-headers: "Authorization,Content-Type,X-Organization-Id"
+    allow-credentials: true

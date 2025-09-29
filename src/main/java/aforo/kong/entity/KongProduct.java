@@ -10,7 +10,11 @@ import java.time.Instant;
 @Data
 public class KongProduct {
     @Id
-    @Column(nullable = false, unique = true, length = 128)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "internal_id")
+    private Long internalId;
+    
+    @Column(name = "external_id", nullable = false, unique = true, length = 128)
     private String id;
 
     @Column(nullable = false)
@@ -31,5 +35,16 @@ public class KongProduct {
     // store labels map as JSON string
     @Column(name = "labels", columnDefinition = "TEXT")
     private String labels;
-    
+
+    @Column(name = "public_labels_json", columnDefinition = "TEXT")
+    private String publicLabelsJson;
+
+    @Column(name = "portal_ids_json", columnDefinition = "TEXT")
+    private String portalIdsJson;
+
+    @Column(name = "portals_json", columnDefinition = "TEXT")
+    private String portalsJson;
+
+    @Column(nullable = false)
+    private Long organizationId;
 }

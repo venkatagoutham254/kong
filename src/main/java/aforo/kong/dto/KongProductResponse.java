@@ -11,5 +11,7 @@ import java.util.Map;
 public class KongProductResponse {
   private List<KongProductDTO> data;
   private Map<String,Object> meta; // keep generic
+
+  private Long organizationId;
 }
 

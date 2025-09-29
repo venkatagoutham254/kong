@@ -6,9 +6,13 @@ import aforo.kong.dto.KongProductResponse;
 import aforo.kong.entity.ClientApiDetails;
 import aforo.kong.entity.KongProduct;
 import aforo.kong.mapper.KongProductMapper;
+import aforo.kong.repository.ClientApiDetailsRepository;
 import aforo.kong.repository.KongProductRepository;
 import aforo.kong.service.ExternalApiService;
+import aforo.kong.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -16,14 +20,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import aforo.kong.repository.ClientApiDetailsRepository;
 
-
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ExternalApiServiceImpl implements ExternalApiService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExternalApiServiceImpl.class);
+    
     private final RestTemplate restTemplate;
     private final KongProductRepository productRepository;
     private final KongProductMapper productMapper;
@@ -41,51 +48,111 @@ public class ExternalApiServiceImpl implements ExternalApiService {
     }
 
     @Override
-public KongProductResponse fetchProducts(ClientApiDetailsDTO apiDetails) {
-    String url = buildUrl(apiDetails.getBaseUrl(), apiDetails.getEndpoint());
+    public KongProductResponse fetchProducts(ClientApiDetailsDTO apiDetails) {
+        // Get organization ID from tenant context
+        Long organizationId = TenantContext.require();
+        logger.info("Fetching products for organization: {}", organizationId);
+        
+        String url = buildUrl(apiDetails.getBaseUrl(), apiDetails.getEndpoint());
 
-    HttpHeaders headers = new HttpHeaders();
-    if (apiDetails.getAuthToken() != null && !apiDetails.getAuthToken().isBlank()) {
-        // ✅ Use Bearer auth (this was the bug)
-        headers.setBearerAuth(apiDetails.getAuthToken());
-    }
-    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-
-    HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-    try {
-        ResponseEntity<String> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                String.class
-        );
-
-        KongProductResponse productResponse =
-                objectMapper.readValue(response.getBody(), KongProductResponse.class);
-
-        if (productResponse != null && productResponse.getData() != null) {
-            productResponse.getData().forEach(dto -> {
-                KongProduct product = productMapper.toEntity(dto);
-                productRepository.save(product);
-            });
+        HttpHeaders headers = new HttpHeaders();
+        if (apiDetails.getAuthToken() != null && !apiDetails.getAuthToken().isBlank()) {
+            headers.setBearerAuth(apiDetails.getAuthToken());
         }
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
-        return productResponse;
-    } catch (Exception e) {
-        throw new RuntimeException("Error while fetching products: " + e.getMessage(), e);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+            );
+
+            KongProductResponse productResponse =
+                    objectMapper.readValue(response.getBody(), KongProductResponse.class);
+
+            if (productResponse != null && productResponse.getData() != null) {
+                // Save products to database and collect the saved entities
+                List<KongProduct> savedProducts = new ArrayList<>();
+                
+                productResponse.getData().forEach(dto -> {
+                    // Set organization ID in DTO before mapping
+                    dto.setOrganizationId(organizationId);
+                    
+                    // Check if product already exists (upsert logic)
+                    Optional<KongProduct> existingProduct = productRepository.findByIdAndOrganizationId(dto.getId(), organizationId);
+                    
+                    KongProduct product;
+                    if (existingProduct.isPresent()) {
+                        // Update existing product
+                        product = existingProduct.get();
+                        product.setName(dto.getName());
+                        product.setDescription(dto.getDescription());
+                        product.setUpdatedAt(dto.getUpdatedAt());
+                        product.setVersionCount(dto.getVersionCount());
+                        // Update JSON fields if present
+                        try {
+                            if (dto.getLabels() != null) {
+                                product.setLabels(objectMapper.writeValueAsString(dto.getLabels()));
+                            }
+                            if (dto.getPublicLabels() != null) {
+                                product.setPublicLabelsJson(objectMapper.writeValueAsString(dto.getPublicLabels()));
+                            }
+                            if (dto.getPortalIds() != null) {
+                                product.setPortalIdsJson(objectMapper.writeValueAsString(dto.getPortalIds()));
+                            }
+                            if (dto.getPortals() != null) {
+                                product.setPortalsJson(objectMapper.writeValueAsString(dto.getPortals()));
+                            }
+                        } catch (Exception ex) {
+                            logger.warn("Error serializing JSON fields for product {}: {}", dto.getId(), ex.getMessage());
+                        }
+                        logger.debug("Updated existing product {} for organization {}", product.getId(), organizationId);
+                    } else {
+                        // Create new product
+                        product = productMapper.toEntity(dto);
+                        logger.debug("Created new product {} for organization {}", product.getId(), organizationId);
+                    }
+                    
+                    KongProduct savedProduct = productRepository.save(product);
+                    savedProducts.add(savedProduct);
+                });
+                
+                // Convert saved entities back to DTOs (with internal IDs)
+                List<KongProductDTO> updatedDtos = savedProducts.stream()
+                    .map(productMapper::toDto)
+                    .collect(Collectors.toList());
+                
+                // Update the response with DTOs that have internal IDs
+                productResponse.setData(updatedDtos);
+                
+                // Set organization_id in the main response object
+                productResponse.setOrganizationId(organizationId);
+            }
+
+            return productResponse;
+        } catch (Exception e) {
+            logger.error("Error while fetching products for organization {}: {}", organizationId, e.getMessage());
+            throw new RuntimeException("Error while fetching products: " + e.getMessage(), e);
+        }
     }
-}
 
 // inside ExternalApiServiceImpl
 
 @Override
 public List<KongProductResponse> fetchProductsFromDb(Long clientDetailsId) {
+    // Get organization ID from tenant context
+    Long organizationId = TenantContext.require();
+    logger.info("Fetching products from DB for organization: {} using clientDetailsId: {}", organizationId, clientDetailsId);
+    
     ClientApiDetails details = clientApiDetailsRepository.findById(clientDetailsId)
         .orElseThrow(() -> new RuntimeException("ClientApiDetails not found for id: " + clientDetailsId));
 
     String url = buildUrl(details.getBaseUrl(), details.getEndpoint());
-    System.out.println("👉 Calling Kong URL: " + url);
+    logger.info("Calling Kong URL: {}", url);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(details.getAuthToken());     // PAT in DB must be raw, no "Bearer "
@@ -134,28 +201,93 @@ productResponse = tmp;
     // -----------------------------------------
 
     if (productResponse.getData() != null) {
+        // Save products to database and collect the saved entities
+        List<KongProduct> savedProducts = new ArrayList<>();
+        
         for (KongProductDTO dto : productResponse.getData()) {
-            KongProduct p = productMapper.toEntity(dto); // mapper writes labels JSON string
-            productRepository.save(p);
+            // Set organization ID in DTO before mapping
+            dto.setOrganizationId(organizationId);
+            
+            // Check if product already exists (upsert logic)
+            Optional<KongProduct> existingProduct = productRepository.findByIdAndOrganizationId(dto.getId(), organizationId);
+            
+            KongProduct product;
+            if (existingProduct.isPresent()) {
+                // Update existing product
+                product = existingProduct.get();
+                product.setName(dto.getName());
+                product.setDescription(dto.getDescription());
+                product.setUpdatedAt(dto.getUpdatedAt());
+                product.setVersionCount(dto.getVersionCount());
+                // Update JSON fields if present
+                try {
+                    if (dto.getLabels() != null) {
+                        product.setLabels(objectMapper.writeValueAsString(dto.getLabels()));
+                    }
+                    if (dto.getPublicLabels() != null) {
+                        product.setPublicLabelsJson(objectMapper.writeValueAsString(dto.getPublicLabels()));
+                    }
+                    if (dto.getPortalIds() != null) {
+                        product.setPortalIdsJson(objectMapper.writeValueAsString(dto.getPortalIds()));
+                    }
+                    if (dto.getPortals() != null) {
+                        product.setPortalsJson(objectMapper.writeValueAsString(dto.getPortals()));
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Error serializing JSON fields for product {}: {}", dto.getId(), ex.getMessage());
+                }
+                logger.debug("Updated existing product {} for organization {}", product.getId(), organizationId);
+            } else {
+                // Create new product
+                product = productMapper.toEntity(dto);
+                logger.debug("Created new product {} for organization {}", product.getId(), organizationId);
+            }
+            
+            KongProduct savedProduct = productRepository.save(product);
+            savedProducts.add(savedProduct);
         }
+        
+        // Convert saved entities back to DTOs (with internal IDs)
+        List<KongProductDTO> updatedDtos = savedProducts.stream()
+            .map(productMapper::toDto)
+            .collect(Collectors.toList());
+        
+        // Update the response with DTOs that have internal IDs
+        productResponse.setData(updatedDtos);
+        
+        // Set organization_id in the main response object
+        productResponse.setOrganizationId(organizationId);
     }
     return List.of(productResponse);
 }
 
     @Override
     public List<KongProduct> getAllProducts() {
-        return productRepository.findAll();
+        Long organizationId = TenantContext.require();
+        logger.info("Getting all products for organization: {}", organizationId);
+        return productRepository.findByOrganizationId(organizationId);
     }
 
     @Override
     public KongProduct getProductById(String id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("KongProduct not found for ID: " + id));
+        Long organizationId = TenantContext.require();
+        logger.info("Getting product {} for organization: {}", id, organizationId);
+        return productRepository.findByIdAndOrganizationId(id, organizationId)
+                .orElseThrow(() -> new RuntimeException("KongProduct not found for ID: " + id + " in organization: " + organizationId));
     }
 
     @Override
     public void deleteProductById(String id) {
-        productRepository.deleteById(id);
+        Long organizationId = TenantContext.require();
+        logger.info("Deleting product {} for organization: {}", id, organizationId);
+        
+        // Check if product exists for this organization first
+        if (!productRepository.existsByIdAndOrganizationId(id, organizationId)) {
+            throw new RuntimeException("KongProduct not found for ID: " + id + " in organization: " + organizationId);
+        }
+        
+        productRepository.deleteByIdAndOrganizationId(id, organizationId);
+        logger.info("Successfully deleted product {} for organization: {}", id, organizationId);
     }
 
     private String buildUrl(String baseUrl, String endpoint) {

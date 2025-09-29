@@ -15,5 +15,4 @@ public class ClientApiDetailsDTO {
     @com.fasterxml.jackson.annotation.JsonProperty("authToken")
     @com.fasterxml.jackson.annotation.JsonAlias({"auth_token"})
     private String authToken;
-    private String responseBody;
 }
