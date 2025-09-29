@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-fix-kong-product-id-to-varchar
+      author: you
+      preConditions:
+        onFail: MARK_RAN
+        onError: HALT
+        and:
+          - tableExists:
+              tableName: kong_product
+          - sqlCheck:
+              expectedResult: bigint
+              sql: |
+                SELECT data_type
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name   = 'kong_product'
+                  AND column_name  = 'id'
+      changes:
+        - sql:
+            comment: "Drop identity if present, then convert id from BIGINT to VARCHAR(64)"
+            splitStatements: true
+            endDelimiter: ;
+            sql: |
+              -- If older table used identity/serial, drop it first (no-op if not present)
+              ALTER TABLE public.kong_product
+                ALTER COLUMN id DROP IDENTITY IF EXISTS;
+
+              -- Change data type; keep PK; cast existing values to text
+              ALTER TABLE public.kong_product
+                ALTER COLUMN id TYPE VARCHAR(64) USING id::text;

@@ -1,0 +1,19 @@
+# Maven build output
+/target
+
+# IDE files
+/.idea
+/.vscode
+
+# VCS
+/.git
+/.gitignore
+
+# OS / misc
+*.log
+**/.DS_Store
+
+# Maven wrapper (not needed inside container)
+.mvn/
+mvnw
+mvnw.cmd

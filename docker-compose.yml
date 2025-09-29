@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: P4ssword!
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d kong -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: kong
+    ports:
+      - "8087:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kong
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: P4ssword!
+      # Optionally override if the external URL differs in Docker:
+      # KONG_CLIENT_DETAILS_URL: http://host.docker.internal:8081/mock/api/details
+    depends_on:
+      - postgres
+    networks:
+      - db-network
+    restart: always
+
+networks:
+  db-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,29 @@
+server:
+  port: 8086
+
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5436/kong}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:P4ssword!}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none   # let Liquibase own the schema; don't fight it
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+logging:
+  level:
+    org.springframework.web.client.RestTemplate: INFO
+
+kong:
+  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://localhost:8081/mock/api/details}
