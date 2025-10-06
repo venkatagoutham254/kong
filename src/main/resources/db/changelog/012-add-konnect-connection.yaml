@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: 012-add-konnect-connection
+      author: aforo
+      context: dev
+      comment: Add Kong Konnect connection details for development
+      changes:
+        - sql:
+            sql: |
+              -- Insert Kong Konnect connection details
+              INSERT INTO client_api_details (
+                name, description, base_url, endpoint, auth_token, 
+                organization_id, environment, workspace, connection_status,
+                created_at, updated_at
+              ) VALUES (
+                'Kong Konnect US - aforo-dev', 
+                'Kong Konnect US Region Connection for aforo-dev control plane',
+                'https://us.api.konghq.com',
+                '/v2/control-planes/22ef7dda-4ad5-45c4-8079-001ac07ddcad/core-entities/services',
+                'kpat_d8AZEzsVCkcgpDQaVW9rDE691CQRKYsrFevY0mK6HQ2jeIgNB',
+                1,
+                'konnect',
+                'aforo-dev',
+                'connected',
+                NOW(),
+                NOW()
+              ) ON CONFLICT DO NOTHING;

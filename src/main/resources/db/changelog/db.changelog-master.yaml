@@ -11,3 +11,13 @@ databaseChangeLog:
       file: db/changelog/004-add-internal-id-to-kong-product.yaml
   - include:
       file: db/changelog/005-add-json-columns-to-kong-product.yaml
+  - include:
+      file: db/changelog/006-create-kong-service.yaml
+  - include:
+      file: db/changelog/007-create-kong-route.yaml
+  - include:
+      file: db/changelog/008-create-kong-consumer.yaml
+  - include:
+      file: db/changelog/009-create-usage-record.yaml
+  - include:
+      file: db/changelog/010-create-pricing-plan.yaml

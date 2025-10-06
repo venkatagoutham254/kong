@@ -29,6 +29,7 @@ logging:
     aforo.kong.security: DEBUG
 
 aforo:
+  base-url: ${AFORO_BASE_URL:http://localhost:8086}
   jwt:
     issuer: aforo-kong
     secret: ${JWT_SECRET:change-me-please-change-me-32-bytes-min}  # env var or fallback
@@ -40,3 +41,21 @@ aforo:
     allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     allowed-headers: "Authorization,Content-Type,X-Organization-Id"
     allow-credentials: true
+# Kong Integration Configuration
+kong:
+  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://localhost:8081/mock/api/details}
+  integration:
+    enabled: true
+    default-admin-url: https://api.konghq.com
+    timeout: 30000
+    retry-attempts: 3
+    usage-processing:
+      batch-size: 100
+      processing-interval-ms: 60000  # Process every minute
+    # Rate limiting defaults
+    rate-limiting:
+      default-limits:
+        minute: 100
+        hour: 1000
+        day: 10000
+        month: 100000

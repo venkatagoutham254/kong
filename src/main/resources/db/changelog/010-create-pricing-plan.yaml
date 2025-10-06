@@ -1,0 +1,129 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-create-pricing-plan
+      author: aforo
+      changes:
+        - createTable:
+            tableName: pricing_plan
+            columns:
+              - column:
+                  name: plan_id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: plan_name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_name
+                  type: VARCHAR(255)
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: kong_consumer_group
+                  type: VARCHAR(100)
+              - column:
+                  name: pricing_model
+                  type: VARCHAR(50)
+                  defaultValue: tiered
+              - column:
+                  name: currency
+                  type: VARCHAR(3)
+                  defaultValue: USD
+              - column:
+                  name: base_price
+                  type: DECIMAL(15,2)
+                  defaultValueNumeric: 0.00
+              - column:
+                  name: minimum_fee
+                  type: DECIMAL(15,2)
+                  defaultValueNumeric: 0.00
+              - column:
+                  name: overage_fee
+                  type: DECIMAL(15,6)
+              - column:
+                  name: metrics
+                  type: TEXT
+              - column:
+                  name: quota_limits
+                  type: TEXT
+              - column:
+                  name: features
+                  type: TEXT
+              - column:
+                  name: max_consumers
+                  type: INTEGER
+              - column:
+                  name: max_requests_per_month
+                  type: BIGINT
+              - column:
+                  name: trial_days
+                  type: INTEGER
+                  defaultValueNumeric: 0
+              - column:
+                  name: auto_upgrade
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: prepaid_credits_enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: auto_topup_enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: auto_topup_amount
+                  type: DECIMAL(15,2)
+              - column:
+                  name: auto_topup_threshold
+                  type: DECIMAL(15,2)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: active
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: metadata
+                  type: TEXT
+        - createIndex:
+            tableName: pricing_plan
+            indexName: idx_pricing_plan_org
+            columns:
+              - column:
+                  name: organization_id
+        - createIndex:
+            tableName: pricing_plan
+            indexName: idx_pricing_plan_name
+            columns:
+              - column:
+                  name: plan_name
+        - createIndex:
+            tableName: pricing_plan
+            indexName: idx_pricing_plan_status
+            columns:
+              - column:
+                  name: status
+        - addUniqueConstraint:
+            tableName: pricing_plan
+            columnNames: plan_name, organization_id
+            constraintName: uk_pricing_plan_name_org

@@ -1,0 +1,99 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-kong-service
+      author: aforo
+      changes:
+        - createTable:
+            tableName: kong_service
+            columns:
+              - column:
+                  name: internal_id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: external_id
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: host
+                  type: TEXT
+              - column:
+                  name: port
+                  type: INTEGER
+              - column:
+                  name: protocol
+                  type: VARCHAR(20)
+              - column:
+                  name: path
+                  type: VARCHAR(2048)
+              - column:
+                  name: retries
+                  type: INTEGER
+              - column:
+                  name: connect_timeout
+                  type: INTEGER
+              - column:
+                  name: write_timeout
+                  type: INTEGER
+              - column:
+                  name: read_timeout
+                  type: INTEGER
+              - column:
+                  name: tags
+                  type: TEXT
+              - column:
+                  name: enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+              - column:
+                  name: ca_certificates
+                  type: TEXT
+              - column:
+                  name: client_certificate
+                  type: TEXT
+              - column:
+                  name: tls_verify
+                  type: BOOLEAN
+              - column:
+                  name: tls_verify_depth
+                  type: INTEGER
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: kong_service
+            indexName: idx_kong_service_org
+            columns:
+              - column:
+                  name: organization_id
+        - createIndex:
+            tableName: kong_service
+            indexName: idx_kong_service_external_id
+            columns:
+              - column:
+                  name: external_id
+        - addUniqueConstraint:
+            tableName: kong_service
+            columnNames: external_id, organization_id
+            constraintName: uk_kong_service_external_org

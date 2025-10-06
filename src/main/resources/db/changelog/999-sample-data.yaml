@@ -1,0 +1,87 @@
+databaseChangeLog:
+  - changeSet:
+      id: 999-sample-data
+      author: aforo
+      context: dev
+      comment: Sample data for development testing (only runs in dev context)
+      changes:
+        # Insert sample pricing plans
+        - sql:
+            sql: |
+              -- Sample pricing plans
+              INSERT INTO pricing_plan (plan_name, display_name, description, kong_consumer_group, 
+                pricing_model, currency, base_price, minimum_fee, overage_fee,
+                metrics, quota_limits, max_requests_per_month, status, created_at, updated_at, organization_id)
+              VALUES 
+              ('bronze', 'Bronze Plan', 'Basic API access', 'bronze-tier', 
+               'tiered', 'USD', 0.00, 0.00, 0.002,
+               '[{"type":"calls","unit":"request","tiers":[{"from":0,"to":1000,"price":0},{"from":1001,"to":10000,"price":0.001},{"from":10001,"to":null,"price":0.0008}]}]',
+               '{"second":null,"minute":10,"hour":500,"day":1000,"month":25000}',
+               25000, 'active', NOW(), NOW(), 1),
+               
+              ('silver', 'Silver Plan', 'Professional API access', 'silver-tier',
+               'tiered', 'USD', 99.00, 99.00, 0.001,
+               '[{"type":"calls","unit":"request","tiers":[{"from":0,"to":10000,"price":0},{"from":10001,"to":100000,"price":0.0008},{"from":100001,"to":null,"price":0.0005}]}]',
+               '{"second":10,"minute":100,"hour":5000,"day":10000,"month":250000}',
+               250000, 'active', NOW(), NOW(), 1),
+               
+              ('gold', 'Gold Plan', 'Enterprise API access', 'gold-tier',
+               'tiered', 'USD', 499.00, 499.00, 0.0005,
+               '[{"type":"calls","unit":"request","tiers":[{"from":0,"to":100000,"price":0},{"from":100001,"to":1000000,"price":0.0005},{"from":1000001,"to":null,"price":0.0003}]}]',
+               '{"second":100,"minute":1000,"hour":50000,"day":100000,"month":2500000}',
+               2500000, 'active', NOW(), NOW(), 1)
+              ON CONFLICT DO NOTHING;
+              
+        # Insert sample Kong consumers
+        - sql:
+            sql: |
+              -- Sample Kong consumers
+              INSERT INTO kong_consumer (external_id, username, custom_id, consumer_groups, 
+                plan_id, wallet_balance, currency, status, created_at, updated_at, organization_id)
+              VALUES
+              ('consumer-1', 'acme-corp', 'ACME-001', '["silver-tier"]',
+               'silver', 1000.00, 'USD', 'active', NOW(), NOW(), 1),
+               
+              ('consumer-2', 'beta-tech', 'BETA-002', '["bronze-tier"]',
+               'bronze', 100.00, 'USD', 'active', NOW(), NOW(), 1),
+               
+              ('consumer-3', 'gamma-solutions', 'GAMMA-003', '["gold-tier"]',
+               'gold', 5000.00, 'USD', 'active', NOW(), NOW(), 1)
+              ON CONFLICT DO NOTHING;
+              
+        # Insert sample Kong services
+        - sql:
+            sql: |
+              -- Sample Kong services
+              INSERT INTO kong_service (external_id, name, host, port, protocol, path,
+                enabled, created_at, updated_at, organization_id)
+              VALUES
+              ('service-1', 'orders-api', 'orders.backend.local', 8080, 'http', '/api',
+               true, NOW(), NOW(), 1),
+               
+              ('service-2', 'payments-api', 'payments.backend.local', 8443, 'https', '/api',
+               true, NOW(), NOW(), 1),
+               
+              ('service-3', 'users-api', 'users.backend.local', 8080, 'http', '/api',
+               true, NOW(), NOW(), 1)
+              ON CONFLICT DO NOTHING;
+              
+        # Insert sample Kong routes
+        - sql:
+            sql: |
+              -- Sample Kong routes
+              INSERT INTO kong_route (external_id, name, protocols, methods, paths,
+                strip_path, preserve_host, kong_service_external_id, created_at, updated_at, organization_id)
+              VALUES
+              ('route-1', 'orders-list', '["http","https"]', '["GET","POST"]', '["/v1/orders"]',
+               true, false, 'service-1', NOW(), NOW(), 1),
+               
+              ('route-2', 'order-details', '["http","https"]', '["GET","PUT","DELETE"]', '["/v1/orders/*"]',
+               true, false, 'service-1', NOW(), NOW(), 1),
+               
+              ('route-3', 'payments', '["https"]', '["POST"]', '["/v1/payments"]',
+               true, false, 'service-2', NOW(), NOW(), 1),
+               
+              ('route-4', 'users', '["http","https"]', '["GET","POST"]', '["/v1/users"]',
+               true, false, 'service-3', NOW(), NOW(), 1)
+              ON CONFLICT DO NOTHING;

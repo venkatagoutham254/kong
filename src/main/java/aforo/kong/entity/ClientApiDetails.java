@@ -10,6 +10,8 @@ import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "client_api_details")
 @Data
@@ -33,4 +35,35 @@ public class ClientApiDetails {
 
     @Column(name = "auth_token")
     private String authToken;
+    
+    // Temporarily commented out until database migration is fixed
+    // @Column(name = "organization_id")
+    // private Long organizationId;
+    
+    // @Column(name = "environment")
+    // private String environment; // "konnect" or "self-managed"
+    
+    // @Column(name = "workspace")
+    // private String workspace;
+    
+    // @Column(name = "additional_config", columnDefinition = "TEXT")
+    // private String additionalConfig; // JSON string for additional configuration
+    
+    // @Column(name = "mtls_cert", columnDefinition = "TEXT")
+    // private String mtlsCert;
+    
+    // @Column(name = "mtls_key", columnDefinition = "TEXT")
+    // private String mtlsKey;
+    
+    // @Column(name = "connection_status")
+    // private String connectionStatus; // "connected", "disconnected", "failed"
+    
+    // @Column(name = "last_sync")
+    // private Instant lastSync;
+    
+    // @Column(name = "created_at")
+    // private Instant createdAt;
+    
+    // @Column(name = "updated_at")
+    // private Instant updatedAt;
 }

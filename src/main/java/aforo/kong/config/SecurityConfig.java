@@ -55,6 +55,9 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/api/health").permitAll()
+                // Allow Kong webhook endpoints without auth (Kong sends data here)
+                .requestMatchers(HttpMethod.POST, "/integrations/kong/ingest").permitAll()
+                .requestMatchers(HttpMethod.POST, "/integrations/kong/events").permitAll()
                 // Allow preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // All kong APIs need JWT
