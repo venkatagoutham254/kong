@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-add-missing-columns
+      author: aforo
+      changes:
+        - addColumn:
+            tableName: client_api_details
+            columns:
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: environment
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: workspace
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: additional_config
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: mtls_cert
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: mtls_key
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: connection_status
+                  type: VARCHAR(20)
+                  defaultValue: disconnected
+                  constraints:
+                    nullable: true
+              - column:
+                  name: last_sync
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: true
