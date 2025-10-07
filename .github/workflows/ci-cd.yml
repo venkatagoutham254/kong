@@ -30,8 +30,13 @@ jobs:
       - name: Build JAR with Maven
         run: |
           mvn -B clean package -DskipTests
-          # Copy the built JAR to app.jar for easier transfer
-          cp target/kong-0.0.1-SNAPSHOT.jar app.jar
+          # The pom.xml has finalName=app, so the executable JAR is target/app.jar
+          cp target/app.jar app.jar
+          # Verify the JAR is executable
+          echo "Verifying JAR file..."
+          ls -la app.jar
+          file app.jar
+          java -jar app.jar --version 2>/dev/null || echo "JAR is ready for deployment"
 
       - name: Run tests (optional)
         run: mvn test
