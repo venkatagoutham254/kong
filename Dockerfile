@@ -9,20 +9,22 @@ COPY pom.xml ./
 RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests dependency:go-offline
 
 # Copy sources and build
-COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests package \
-    && JAR=$(ls target/*.jar | grep -v original | head -n 1) \
-    && cp "$JAR" app.jar
+COPY . .
+RUN --mount=type=cache,target=/root/.m2 \
+    if [ ! -d "src" ]; then echo "ERROR: src directory not found in build context"; ls -la; exit 1; fi && \
+    mvn -q -DskipTests package && \
+    JAR=$(ls target/*.jar | grep -v original | head -n 1) && \
+    cp "$JAR" app.jar
 
 # Runtime stage
 FROM openjdk:21-jdk-slim
 WORKDIR /app
 
 # Copy the built jar from builder stage (finalName is set to 'app' in pom.xml)
-COPY --from=builder /workspace/app.jar /app/app.jar
+COPY --from=builder /workspace/app.jar app.jar
 
-# Expose Spring Boot default port
-EXPOSE 8080
+# Expose Spring Boot configured port
+EXPOSE 8086
 
 # Optionally pass JVM args via JAVA_OPTS env var (set in docker-compose if needed)
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

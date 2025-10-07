@@ -51,9 +51,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Allow Swagger & health endpoints without auth
                 .requestMatchers(
+                        "/",
+                        "/swagger",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
+                        "/swagger-ui/index.html",
+                        "/swagger-resources/**",
+                        "/webjars/**",
                         "/api/health").permitAll()
                 // Allow Kong webhook endpoints without auth (Kong sends data here)
                 .requestMatchers(HttpMethod.POST, "/integrations/kong/ingest").permitAll()
