@@ -1,14 +1,18 @@
 databaseChangeLog:
   - changeSet:
-      id: 005-add-json-columns-to-kong-product
+      id: 005-01-add-public-labels-json
       author: you
       preConditions:
         onFail: MARK_RAN
         onError: HALT
-        tableExists:
-          tableName: kong_product
+        and:
+          - tableExists:
+              tableName: kong_product
+          - not:
+              columnExists:
+                tableName: kong_product
+                columnName: public_labels_json
       changes:
-        # Add missing JSON columns for storing Kong product data
         - addColumn:
             tableName: kong_product
             columns:
@@ -17,13 +21,61 @@ databaseChangeLog:
                   type: TEXT
                   constraints:
                     nullable: true
+      rollback:
+        - dropColumn:
+            tableName: kong_product
+            columnName: public_labels_json
+
+  - changeSet:
+      id: 005-02-add-portal-ids-json
+      author: you
+      preConditions:
+        onFail: MARK_RAN
+        onError: HALT
+        and:
+          - tableExists:
+              tableName: kong_product
+          - not:
+              columnExists:
+                tableName: kong_product
+                columnName: portal_ids_json
+      changes:
+        - addColumn:
+            tableName: kong_product
+            columns:
               - column:
                   name: portal_ids_json
                   type: TEXT
                   constraints:
                     nullable: true
+      rollback:
+        - dropColumn:
+            tableName: kong_product
+            columnName: portal_ids_json
+
+  - changeSet:
+      id: 005-03-add-portals-json
+      author: you
+      preConditions:
+        onFail: MARK_RAN
+        onError: HALT
+        and:
+          - tableExists:
+              tableName: kong_product
+          - not:
+              columnExists:
+                tableName: kong_product
+                columnName: portals_json
+      changes:
+        - addColumn:
+            tableName: kong_product
+            columns:
               - column:
                   name: portals_json
                   type: TEXT
                   constraints:
                     nullable: true
+      rollback:
+        - dropColumn:
+            tableName: kong_product
+            columnName: portals_json

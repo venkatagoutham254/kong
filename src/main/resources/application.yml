@@ -19,14 +19,22 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
 logging:
   level:
     org.springframework.web.client.RestTemplate: INFO
-    aforo.kong.security: DEBUG
 
 aforo:
   base-url: ${AFORO_BASE_URL:http://localhost:8086}

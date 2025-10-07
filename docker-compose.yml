@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: kong
       POSTGRES_USER: root
       POSTGRES_PASSWORD: P4ssword!
+      TZ: UTC
+      PGTZ: UTC
     ports:
       - "5436:5432"
     volumes:
@@ -24,15 +26,18 @@ services:
     build: .
     container_name: kong
     ports:
-      - "8087:8080"
+      - "8086:8086"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kong
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: P4ssword!
+      TZ: UTC
+      JAVA_OPTS: "-Duser.timezone=UTC"
       # Optionally override if the external URL differs in Docker:
       # KONG_CLIENT_DETAILS_URL: http://host.docker.internal:8081/mock/api/details
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - db-network
     restart: always
