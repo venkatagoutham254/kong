@@ -1,5 +1,5 @@
 # Simple runtime-only Dockerfile for EC2 deployment
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 # Copy the pre-built JAR file
