@@ -28,9 +28,24 @@ jobs:
 
       - name: Copy files to EC2 via SCP
         run: |
-          scp -i ec2-key.pem -o StrictHostKeyChecking=no target/app.jar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
-          scp -i ec2-key.pem -o StrictHostKeyChecking=no Dockerfile ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
-          scp -i ec2-key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
+          echo "Checking files before SCP..."
+          ls -la target/
+          ls -la Dockerfile.ec2
+          ls -la docker-compose.yml
+          echo "Copying files to EC2..."
+          scp -i ec2-key.pem -o StrictHostKeyChecking=no target/app.jar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/app.jar
+          scp -i ec2-key.pem -o StrictHostKeyChecking=no Dockerfile.ec2 ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/Dockerfile
+          scp -i ec2-key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/docker-compose.yml
+          echo "Files copied successfully!"
+
+      - name: Verify files on EC2
+        run: |
+          ssh -i ec2-key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "Files in /home/ec2-user:"
+            ls -la /home/ec2-user/
+            echo "Content of Dockerfile:"
+            cat /home/ec2-user/Dockerfile
+          EOF
 
       - name: Restart app via SSH
         run: |
