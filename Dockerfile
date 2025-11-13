@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     cp "$JAR" app.jar
 
 # Runtime stage
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 # Copy the built jar from builder stage (finalName is set to 'app' in pom.xml)
