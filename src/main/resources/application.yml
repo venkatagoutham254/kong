@@ -37,7 +37,7 @@ logging:
     org.springframework.web.client.RestTemplate: INFO
 
 aforo:
-  base-url: ${AFORO_BASE_URL:http://localhost:8086}
+  base-url: ${AFORO_BASE_URL:http://44.201.19.187:8081}
   jwt:
     issuer: aforo-kong
     secret: ${JWT_SECRET:change-me-please-change-me-32-bytes-min}  # env var or fallback
@@ -45,7 +45,7 @@ aforo:
   cors:
     # Comma-separated list; used by SecurityConfig.corsConfigurationSource()
     # Include your frontend origin(s). Add https variants if applicable.
-    allowed-origins: "http://13.115.248.133,http://localhost:3000"
+    allowed-origins: "http://13.115.248.133,http://localhost:3000,http://54.221.164.5"
     allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     allowed-headers: "Authorization,Content-Type,X-Organization-Id"
     allow-credentials: true
