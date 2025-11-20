@@ -13,8 +13,20 @@ public class ClientApiDetailsMapperImpl implements ClientApiDetailsMapper {
         entity.setName(dto.getName());
         entity.setDescription(dto.getDescription());
         entity.setBaseUrl(dto.getBaseUrl());
-        entity.setEndpoint(dto.getEndpoint());
-                // Strip optional "Bearer " prefix so we don't double-prefix later
+        
+        // Construct endpoint from baseUrl and controlPlaneId if endpoint not provided
+        if (dto.getEndpoint() != null && !dto.getEndpoint().isEmpty()) {
+            entity.setEndpoint(dto.getEndpoint());
+        } else if (dto.getControlPlaneId() != null && !dto.getControlPlaneId().isEmpty()) {
+            // For Kong Konnect, use the v2 API products endpoint
+            // Note: API products are global, not per control plane
+            entity.setEndpoint("/v2/api-products");
+        } else {
+            // Default endpoint for self-managed Kong
+            entity.setEndpoint("/services");
+        }
+        
+        // Strip optional "Bearer " prefix so we don't double-prefix later
         if (dto.getAuthToken() != null && dto.getAuthToken().startsWith("Bearer ")) {
             entity.setAuthToken(dto.getAuthToken().substring(7));
         } else {

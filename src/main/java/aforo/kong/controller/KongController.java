@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/kong")
@@ -74,5 +75,14 @@ public class KongController {
             @Parameter(description = "Product ID") @PathVariable String id) {
         externalApiService.deleteProductById(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/import-selected")
+    @Operation(summary = "Import selected Kong products to product/rateplan service",
+               description = "Imports selected Kong products with automatic product_type=API")
+    public ResponseEntity<Map<String, Object>> importSelectedProducts(
+            @RequestBody List<String> productIds) {
+        Map<String, Object> result = externalApiService.importSelectedProducts(productIds);
+        return ResponseEntity.ok(result);
     }
 }

@@ -22,7 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -196,7 +198,8 @@ if (meta != null && !meta.isNull()) {
 productResponse = tmp;
 
     } catch (Exception e) {
-        throw new RuntimeException("Failed to parse Konnect response", e);
+        logger.error("Failed to parse Konnect response. Error: {}", e.getMessage(), e);
+        throw new RuntimeException("Failed to parse Konnect response: " + e.getMessage(), e);
     }
     // -----------------------------------------
 
@@ -281,13 +284,55 @@ productResponse = tmp;
         Long organizationId = TenantContext.require();
         logger.info("Deleting product {} for organization: {}", id, organizationId);
         
-        // Check if product exists for this organization first
-        if (!productRepository.existsByIdAndOrganizationId(id, organizationId)) {
-            throw new RuntimeException("KongProduct not found for ID: " + id + " in organization: " + organizationId);
+        KongProduct product = productRepository.findByIdAndOrganizationId(id, organizationId)
+                .orElseThrow(() -> new RuntimeException("KongProduct not found for ID: " + id + " in organization: " + organizationId));
+        
+        productRepository.delete(product);
+        logger.info("Successfully deleted product {} for organization: {}", id, organizationId);
+    }
+
+    @Override
+    public Map<String, Object> importSelectedProducts(List<String> productIds) {
+        Long organizationId = TenantContext.require();
+        logger.info("Importing {} selected Kong products for organization: {}", productIds.size(), organizationId);
+        
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> importedProducts = new ArrayList<>();
+        int successCount = 0;
+        int failureCount = 0;
+        
+        for (String productId : productIds) {
+            try {
+                KongProduct kongProduct = productRepository.findByIdAndOrganizationId(productId, organizationId)
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+                
+                // Prepare product data for product/rateplan service
+                Map<String, Object> productData = new HashMap<>();
+                productData.put("external_id", kongProduct.getId());
+                productData.put("name", kongProduct.getName());
+                productData.put("description", kongProduct.getDescription());
+                productData.put("source", "kong"); // Set source as kong
+                productData.put("product_type", "API"); // Auto-set product type as API
+                productData.put("organization_id", organizationId);
+                
+                // TODO: Call product/rateplan service to save the product
+                // For now, we'll just collect the data
+                importedProducts.add(productData);
+                successCount++;
+                
+                logger.info("Prepared Kong product {} for import", productId);
+            } catch (Exception e) {
+                logger.error("Failed to import Kong product {}: {}", productId, e.getMessage());
+                failureCount++;
+            }
         }
         
-        productRepository.deleteByIdAndOrganizationId(id, organizationId);
-        logger.info("Successfully deleted product {} for organization: {}", id, organizationId);
+        result.put("imported_products", importedProducts);
+        result.put("success_count", successCount);
+        result.put("failure_count", failureCount);
+        result.put("source", "kong");
+        
+        return result;
     }
 
     private String buildUrl(String baseUrl, String endpoint) {

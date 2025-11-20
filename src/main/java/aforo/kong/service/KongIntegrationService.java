@@ -19,7 +19,9 @@ public interface KongIntegrationService {
     
     // Usage ingestion
     void ingestUsageEvent(KongEventDTO event);
+    void ingestUsageEvent(KongEventDTO event, Long organizationId);
     void ingestUsageEvents(List<KongEventDTO> events);
+    void ingestUsageEvents(List<KongEventDTO> events, Long organizationId);
     UsageRecord processUsageEvent(KongEventDTO event);
     
     // Event hooks
@@ -28,7 +30,9 @@ public interface KongIntegrationService {
     // Enforcement
     void enforceRateLimits(EnforceGroupsRequestDTO request);
     void suspendConsumer(SuspendRequestDTO request);
+    void suspendConsumer(SuspendRequestDTO request, Long organizationId);
     void resumeConsumer(String consumerId);
+    void resumeConsumer(String consumerId, Long organizationId);
     
     // Consumer group management
     void createConsumerGroup(String groupName, Long organizationId);

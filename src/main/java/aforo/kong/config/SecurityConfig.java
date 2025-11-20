@@ -63,6 +63,11 @@ public class SecurityConfig {
                 // Allow Kong webhook endpoints without auth (Kong sends data here)
                 .requestMatchers(HttpMethod.POST, "/integrations/kong/ingest").permitAll()
                 .requestMatchers(HttpMethod.POST, "/integrations/kong/events").permitAll()
+                // Allow Apigee webhook endpoints without auth
+                .requestMatchers("/api/integrations/apigee/webhooks/**").permitAll()
+                // Allow Apigee connection and products endpoints for testing
+                .requestMatchers("/api/integrations/apigee/connections").permitAll()
+                .requestMatchers("/api/integrations/apigee/products/**").permitAll()
                 // Allow preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // All kong APIs need JWT
@@ -71,6 +76,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/kong/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/kong/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/kong/**").authenticated()
+                // All Apigee APIs need JWT (except the ones allowed above)
+                .requestMatchers("/api/integrations/apigee/**").authenticated()
                 // everything else
                 .anyRequest().authenticated()
             )
@@ -86,9 +93,18 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withSecretKey(
+        // Accept tokens from both aforo-kong and aforo-customerservice
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(
                 new SecretKeySpec(jwtSecret.getBytes(), "HmacSHA256")
         ).build();
+        
+        // Disable issuer validation to accept tokens from different services
+        decoder.setJwtValidator(jwt -> {
+            // Basic validation - just check if token is not expired
+            return org.springframework.security.oauth2.jwt.JwtValidators.createDefault().validate(jwt);
+        });
+        
+        return decoder;
     }
 
     @Bean

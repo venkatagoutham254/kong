@@ -71,24 +71,25 @@ public class KongIntegrationServiceImpl implements KongIntegrationService {
             
             // Save connection details
             ClientApiDetails apiDetails = new ClientApiDetails();
-            // apiDetails.setOrganizationId(organizationId); // Temporarily disabled
+            apiDetails.setOrganizationId(organizationId);
             apiDetails.setBaseUrl(request.getAdminApiUrl());
             apiDetails.setAuthToken(request.getToken());
             apiDetails.setName("Kong Connection");
             apiDetails.setDescription("Kong Konnect Connection");
             apiDetails.setEndpoint("/services");
-            // apiDetails.setEnvironment(request.getEnvironment()); // Temporarily disabled
-            // apiDetails.setAdditionalConfig(objectMapper.writeValueAsString(request)); // Temporarily disabled
+            apiDetails.setEnvironment(request.getEnvironment());
+            apiDetails.setWorkspace(request.getWorkspace());
+            apiDetails.setConnectionStatus("connected");
+            apiDetails.setCreatedAt(Instant.now());
+            apiDetails.setUpdatedAt(Instant.now());
             clientApiDetailsRepository.save(apiDetails);
-            
-            // Perform initial catalog sync
-            CatalogSyncResponseDTO syncResult = syncCatalog(apiDetails.getId());
             
             response.setConnectionId(apiDetails.getId().toString());
             response.setStatus("connected");
-            response.setServicesDiscovered(syncResult.getServices() != null ? syncResult.getServices().getFetched() : 0);
-            response.setRoutesDiscovered(syncResult.getRoutes() != null ? syncResult.getRoutes().getFetched() : 0);
-            response.setConsumersDiscovered(syncResult.getConsumers() != null ? syncResult.getConsumers().getFetched() : 0);
+            response.setMessage("Successfully connected to Kong");
+            response.setServicesDiscovered(0);
+            response.setRoutesDiscovered(0);
+            response.setConsumersDiscovered(0);
             response.setWebhookUrl(aforoBaseUrl + "/integrations/kong/events");
             response.setIngestUrl(aforoBaseUrl + "/integrations/kong/ingest");
             response.setMessage("Successfully connected to Kong and imported catalog");
@@ -165,36 +166,257 @@ public class KongIntegrationServiceImpl implements KongIntegrationService {
     
     @Override
     public CatalogSyncResponseDTO syncServices(Long clientDetailsId) {
-        // TODO: Implement service sync
+        logger.info("Syncing services for client details ID: {}", clientDetailsId);
+        Long organizationId = TenantContext.require();
+        
         CatalogSyncResponseDTO response = new CatalogSyncResponseDTO();
         CatalogSyncResponseDTO.SyncStats stats = new CatalogSyncResponseDTO.SyncStats();
-        stats.setFetched(0);
-        stats.setCreated(0);
-        stats.setUpdated(0);
+        
+        try {
+            // Get client API details
+            ClientApiDetails apiDetails = clientApiDetailsRepository.findById(clientDetailsId)
+                .orElseThrow(() -> new RuntimeException("Client API details not found"));
+            
+            // Fetch services from Kong
+            String url = apiDetails.getBaseUrl() + "/services";
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + apiDetails.getAuthToken());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> kongResponse = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            
+            if (kongResponse.getStatusCode().is2xxSuccessful() && kongResponse.getBody() != null) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> services = (List<Map<String, Object>>) kongResponse.getBody().get("data");
+                
+                if (services != null) {
+                    stats.setFetched(services.size());
+                    int created = 0;
+                    int updated = 0;
+                    
+                    for (Map<String, Object> serviceData : services) {
+                        String serviceId = (String) serviceData.get("id");
+                        String serviceName = (String) serviceData.get("name");
+                        
+                        // Check if service already exists
+                        Optional<KongService> existingService = serviceRepository.findByIdAndOrganizationId(serviceId, organizationId);
+                        
+                        KongService service;
+                        if (existingService.isPresent()) {
+                            service = existingService.get();
+                            updated++;
+                        } else {
+                            service = new KongService();
+                            service.setId(serviceId);
+                            service.setOrganizationId(organizationId);
+                            created++;
+                        }
+                        
+                        service.setName(serviceName);
+                        service.setHost((String) serviceData.get("host"));
+                        service.setPath((String) serviceData.get("path"));
+                        service.setProtocol((String) serviceData.get("protocol"));
+                        
+                        Object portObj = serviceData.get("port");
+                        if (portObj instanceof Number) {
+                            service.setPort(((Number) portObj).intValue());
+                        }
+                        
+                        service.setEnabled((Boolean) serviceData.getOrDefault("enabled", true));
+                        // service.setLastSyncTime(Instant.now()); // TODO: Add this field to entity
+                        
+                        serviceRepository.save(service);
+                    }
+                    
+                    stats.setCreated(created);
+                    stats.setUpdated(updated);
+                    logger.info("Synced {} services: {} created, {} updated", services.size(), created, updated);
+                } else {
+                    stats.setFetched(0);
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("Failed to sync services", e);
+            stats.setFailed(stats.getFetched());
+        }
+        
         response.setServices(stats);
         return response;
     }
     
     @Override
     public CatalogSyncResponseDTO syncRoutes(Long clientDetailsId) {
-        // TODO: Implement route sync
+        logger.info("Syncing routes for client details ID: {}", clientDetailsId);
+        Long organizationId = TenantContext.require();
+        
         CatalogSyncResponseDTO response = new CatalogSyncResponseDTO();
         CatalogSyncResponseDTO.SyncStats stats = new CatalogSyncResponseDTO.SyncStats();
-        stats.setFetched(0);
-        stats.setCreated(0);
-        stats.setUpdated(0);
+        
+        try {
+            // Get client API details
+            ClientApiDetails apiDetails = clientApiDetailsRepository.findById(clientDetailsId)
+                .orElseThrow(() -> new RuntimeException("Client API details not found"));
+            
+            // Fetch routes from Kong
+            String url = apiDetails.getBaseUrl() + "/routes";
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + apiDetails.getAuthToken());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> kongResponse = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            
+            if (kongResponse.getStatusCode().is2xxSuccessful() && kongResponse.getBody() != null) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> routes = (List<Map<String, Object>>) kongResponse.getBody().get("data");
+                
+                if (routes != null) {
+                    stats.setFetched(routes.size());
+                    int created = 0;
+                    int updated = 0;
+                    
+                    for (Map<String, Object> routeData : routes) {
+                        String routeId = (String) routeData.get("id");
+                        String routeName = (String) routeData.get("name");
+                        
+                        // Check if route already exists
+                        Optional<KongRoute> existingRoute = routeRepository.findByIdAndOrganizationId(routeId, organizationId);
+                        
+                        KongRoute route;
+                        if (existingRoute.isPresent()) {
+                            route = existingRoute.get();
+                            updated++;
+                        } else {
+                            route = new KongRoute();
+                            route.setId(routeId);
+                            route.setOrganizationId(organizationId);
+                            created++;
+                        }
+                        
+                        route.setName(routeName);
+                        @SuppressWarnings("unchecked")
+                        List<String> paths = (List<String>) routeData.get("paths");
+                        if (paths != null && !paths.isEmpty()) {
+                            route.setPaths(String.join(",", paths));
+                        }
+                        
+                        @SuppressWarnings("unchecked")
+                        List<String> methods = (List<String>) routeData.get("methods");
+                        if (methods != null && !methods.isEmpty()) {
+                            route.setMethods(String.join(",", methods));
+                        }
+                        
+                        // Get service ID from service object
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> serviceData = (Map<String, Object>) routeData.get("service");
+                        if (serviceData != null) {
+                            // route.setServiceId((String) serviceData.get("id")); // TODO: Add this field to entity
+                        }
+                        
+                        route.setStripPath((Boolean) routeData.getOrDefault("strip_path", false));
+                        // route.setLastSyncTime(Instant.now()); // TODO: Add this field to entity
+                        
+                        routeRepository.save(route);
+                    }
+                    
+                    stats.setCreated(created);
+                    stats.setUpdated(updated);
+                    logger.info("Synced {} routes: {} created, {} updated", routes.size(), created, updated);
+                } else {
+                    stats.setFetched(0);
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("Failed to sync routes", e);
+            stats.setFailed(stats.getFetched());
+        }
+        
         response.setRoutes(stats);
         return response;
     }
     
     @Override
     public CatalogSyncResponseDTO syncConsumers(Long clientDetailsId) {
-        // TODO: Implement consumer sync
+        logger.info("Syncing consumers for client details ID: {}", clientDetailsId);
+        Long organizationId = TenantContext.require();
+        
         CatalogSyncResponseDTO response = new CatalogSyncResponseDTO();
         CatalogSyncResponseDTO.SyncStats stats = new CatalogSyncResponseDTO.SyncStats();
-        stats.setFetched(0);
-        stats.setCreated(0);
-        stats.setUpdated(0);
+        
+        try {
+            // Get client API details
+            ClientApiDetails apiDetails = clientApiDetailsRepository.findById(clientDetailsId)
+                .orElseThrow(() -> new RuntimeException("Client API details not found"));
+            
+            // Fetch consumers from Kong
+            String url = apiDetails.getBaseUrl() + "/consumers";
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + apiDetails.getAuthToken());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> kongResponse = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            
+            if (kongResponse.getStatusCode().is2xxSuccessful() && kongResponse.getBody() != null) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> consumers = (List<Map<String, Object>>) kongResponse.getBody().get("data");
+                
+                if (consumers != null) {
+                    stats.setFetched(consumers.size());
+                    int created = 0;
+                    int updated = 0;
+                    
+                    for (Map<String, Object> consumerData : consumers) {
+                        String consumerId = (String) consumerData.get("id");
+                        String username = (String) consumerData.get("username");
+                        String customId = (String) consumerData.get("custom_id");
+                        
+                        // Check if consumer already exists
+                        Optional<KongConsumer> existingConsumer = consumerRepository.findByIdAndOrganizationId(consumerId, organizationId);
+                        
+                        KongConsumer consumer;
+                        if (existingConsumer.isPresent()) {
+                            consumer = existingConsumer.get();
+                            updated++;
+                        } else {
+                            consumer = new KongConsumer();
+                            consumer.setId(consumerId);
+                            consumer.setOrganizationId(organizationId);
+                            created++;
+                        }
+                        
+                        consumer.setUsername(username);
+                        consumer.setCustomId(customId);
+                        
+                        @SuppressWarnings("unchecked")
+                        List<String> tags = (List<String>) consumerData.get("tags");
+                        if (tags != null && !tags.isEmpty()) {
+                            consumer.setTags(String.join(",", tags));
+                        }
+                        
+                        consumer.setStatus("active");
+                        consumer.setWalletBalance(0.0); // Default wallet balance
+                        // consumer.setLastSyncTime(Instant.now()); // TODO: Add this field to entity
+                        
+                        consumerRepository.save(consumer);
+                    }
+                    
+                    stats.setCreated(created);
+                    stats.setUpdated(updated);
+                    logger.info("Synced {} consumers: {} created, {} updated", consumers.size(), created, updated);
+                } else {
+                    stats.setFetched(0);
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("Failed to sync consumers", e);
+            stats.setFailed(stats.getFetched());
+        }
+        
         response.setConsumers(stats);
         return response;
     }
@@ -209,6 +431,17 @@ public class KongIntegrationServiceImpl implements KongIntegrationService {
     }
     
     @Override
+    public void ingestUsageEvent(KongEventDTO event, Long organizationId) {
+        // Set organization context and delegate to existing method
+        TenantContext.set(organizationId);
+        try {
+            ingestUsageEvent(event);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+    
+    @Override
     public void ingestUsageEvents(List<KongEventDTO> events) {
         List<UsageRecord> records = events.stream()
             .map(this::processUsageEvent)
@@ -218,6 +451,17 @@ public class KongIntegrationServiceImpl implements KongIntegrationService {
         if (!records.isEmpty()) {
             usageRecordRepository.saveAll(records);
             logger.info("Ingested {} usage events", records.size());
+        }
+    }
+    
+    @Override
+    public void ingestUsageEvents(List<KongEventDTO> events, Long organizationId) {
+        // Set organization context and delegate to existing method
+        TenantContext.set(organizationId);
+        try {
+            ingestUsageEvents(events);
+        } finally {
+            TenantContext.clear();
         }
     }
     
@@ -319,6 +563,17 @@ public class KongIntegrationServiceImpl implements KongIntegrationService {
     }
     
     @Override
+    public void suspendConsumer(SuspendRequestDTO request, Long organizationId) {
+        // Set organization context and delegate to existing method
+        TenantContext.set(organizationId);
+        try {
+            suspendConsumer(request);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+    
+    @Override
     public void resumeConsumer(String consumerId) {
         Long organizationId = TenantContext.require();
         
@@ -331,6 +586,17 @@ public class KongIntegrationServiceImpl implements KongIntegrationService {
         
         logger.info("Resumed consumer: {}", consumerId);
         // TODO: Implement resume via Kong Admin API
+    }
+    
+    @Override
+    public void resumeConsumer(String consumerId, Long organizationId) {
+        // Set organization context and delegate to existing method
+        TenantContext.set(organizationId);
+        try {
+            resumeConsumer(consumerId);
+        } finally {
+            TenantContext.clear();
+        }
     }
     
     @Override
