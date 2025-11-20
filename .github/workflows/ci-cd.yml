@@ -26,8 +26,8 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > ec2-key.pem
           chmod 600 ec2-key.pem
 
-            - name: Copy files to EC2 via SCP
-              run: |
+      - name: Copy files to EC2 via SCP
+        run: |
           echo "Checking files before SCP..."
           ls -la target/
           ls -la Dockerfile.ec2
@@ -37,6 +37,7 @@ jobs:
           scp -i ec2-key.pem -o StrictHostKeyChecking=no Dockerfile.ec2 ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/Dockerfile
           scp -i ec2-key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/docker-compose.yml
           echo "Files copied successfully!"
+
       - name: Verify files on EC2
         run: |
           ssh -i ec2-key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
@@ -56,9 +57,9 @@ jobs:
 
       - name: Wait for health check (public)
         run: |
-          echo "Waiting for http://${{ secrets.EC2_HOST }}:8084/api/health ..."
+          echo "Waiting for http://${{ secrets.EC2_HOST }}:8086/api/health ..."
           for i in {1..60}; do
-            if curl -fs http://${{ secrets.EC2_HOST }}:8084/api/health > /dev/null; then
+            if curl -fs http://${{ secrets.EC2_HOST }}:8086/api/health > /dev/null; then
               echo "✅ Service is up!" && exit 0
             fi
             sleep 5
