@@ -150,8 +150,8 @@ public List<KongProductResponse> fetchProductsFromDb(Long clientDetailsId) {
     Long organizationId = TenantContext.require();
     logger.info("Fetching products from DB for organization: {} using clientDetailsId: {}", organizationId, clientDetailsId);
     
-    ClientApiDetails details = clientApiDetailsRepository.findById(clientDetailsId)
-        .orElseThrow(() -> new RuntimeException("ClientApiDetails not found for id: " + clientDetailsId));
+    ClientApiDetails details = clientApiDetailsRepository.findByIdAndOrganizationId(clientDetailsId, organizationId)
+        .orElseThrow(() -> new RuntimeException("ClientApiDetails not found for id: " + clientDetailsId + " and organization: " + organizationId));
 
     String url = buildUrl(details.getBaseUrl(), details.getEndpoint());
     logger.info("Calling Kong URL: {}", url);
