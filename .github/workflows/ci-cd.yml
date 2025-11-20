@@ -33,7 +33,7 @@ jobs:
           ls -la Dockerfile.ec2
           ls -la docker-compose.yml
           echo "Copying files to EC2..."
-          scp -i ec2-key.pem -o StrictHostKeyChecking=no target/app.jar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/app.jar
+          scp -i ec2-key.pem -o StrictHostKeyChecking=no target/apigee-integration-service-1.0.0.jar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/app.jar
           scp -i ec2-key.pem -o StrictHostKeyChecking=no Dockerfile.ec2 ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/Dockerfile
           scp -i ec2-key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/docker-compose.yml
           echo "Files copied successfully!"
