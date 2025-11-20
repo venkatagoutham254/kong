@@ -1,9 +1,7 @@
-name: CI/CD Pipeline
+name: CI / CD
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
     branches: [ "main" ]
 
 jobs:
@@ -20,27 +18,8 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
       - name: Build JAR with Maven
-        run: |
-          mvn -B clean package -DskipTests
-          # The pom.xml has finalName=app, so the executable JAR is target/app.jar
-          cp target/app.jar app.jar
-          # Verify the JAR is executable
-          echo "Verifying JAR file..."
-          ls -la app.jar
-          file app.jar
-          java -jar app.jar --version 2>/dev/null || echo "JAR is ready for deployment"
-
-      - name: Run tests (optional)
-        run: mvn test
-        continue-on-error: true
+        run: mvn -B clean package -DskipTests
 
       - name: Decode EC2 SSH key
         run: |
@@ -49,40 +28,43 @@ jobs:
 
       - name: Copy files to EC2 via SCP
         run: |
-          scp -i ec2-key.pem -o StrictHostKeyChecking=no app.jar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
+          echo "Checking files before SCP..."
+          ls -la target/
+          ls -la Dockerfile.ec2
+          ls -la docker-compose.yml
+          echo "Copying files to EC2..."
+          scp -i ec2-key.pem -o StrictHostKeyChecking=no target/app.jar ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/app.jar
           scp -i ec2-key.pem -o StrictHostKeyChecking=no Dockerfile.ec2 ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/Dockerfile
-          scp -i ec2-key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/
+          scp -i ec2-key.pem -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${{ secrets.EC2_HOST }}:/home/ec2-user/docker-compose.yml
+          echo "Files copied successfully!"
 
-      - name: Deploy to EC2
+      - name: Verify files on EC2
+        run: |
+          ssh -i ec2-key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "Files in /home/ec2-user:"
+            ls -la /home/ec2-user/
+            echo "Content of Dockerfile:"
+            cat /home/ec2-user/Dockerfile
+          EOF
+
+      - name: Restart app via SSH
         run: |
           ssh -i ec2-key.pem -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/ec2-user
-            
-            # Stop existing containers
-            docker-compose down || true
-            
-            # Remove old images to force rebuild
-            docker system prune -f || true
-            
-            # Start new containers
+            docker-compose down
             docker-compose up --build -d
-            
-            # Wait a moment for containers to start
-            sleep 10
-            
-            # Check container status
-            docker ps
           EOF
 
-
-      - name: Verify Swagger UI
+      - name: Wait for health check (public)
         run: |
-          echo "Testing Swagger UI accessibility..."
-          if curl -fs "http://${{ secrets.EC2_HOST }}:8086/swagger-ui.html" > /dev/null; then
-            echo "✅ Swagger UI is accessible at http://${{ secrets.EC2_HOST }}:8086/swagger-ui.html"
-          else
-            echo "⚠️ Swagger UI might not be accessible"
-          fi
+          echo "Waiting for http://${{ secrets.EC2_HOST }}:8084/api/health ..."
+          for i in {1..60}; do
+            if curl -fs http://${{ secrets.EC2_HOST }}:8084/api/health > /dev/null; then
+              echo "✅ Service is up!" && exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ Service failed to start in time" && exit 1
 
       - name: Cleanup
         if: always()

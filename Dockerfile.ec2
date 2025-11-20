@@ -1,12 +1,5 @@
-# Simple runtime-only Dockerfile for EC2 deployment
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
-
-# Copy the pre-built JAR file
 COPY app.jar app.jar
-
-# Expose Spring Boot configured port
 EXPOSE 8086
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
