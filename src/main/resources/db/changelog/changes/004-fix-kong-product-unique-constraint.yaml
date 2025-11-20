@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-fix-kong-product-unique-constraint
+      author: system
+      changes:
+        - dropUniqueConstraint:
+            tableName: kong_product
+            constraintName: uk_kong_product_external_id
+        
+        - addUniqueConstraint:
+            tableName: kong_product
+            columnNames: external_id, organization_id
+            constraintName: uk_kong_product_external_org
+      
+      rollback:
+        - dropUniqueConstraint:
+            tableName: kong_product
+            constraintName: uk_kong_product_external_org
+        - addUniqueConstraint:
+            tableName: kong_product
+            columnNames: external_id
+            constraintName: uk_kong_product_external_id
