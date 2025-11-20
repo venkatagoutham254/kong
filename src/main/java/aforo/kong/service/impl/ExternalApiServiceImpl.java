@@ -165,11 +165,14 @@ public List<KongProductResponse> fetchProductsFromDb(Long clientDetailsId) {
     // ---- FIX: wrap readValue in try/catch ----
     KongProductResponse productResponse;
     try {
+        logger.info("Making request to Kong URL: {}", url);
+        logger.info("Using auth token: {}...", details.getAuthToken().substring(0, Math.min(20, details.getAuthToken().length())));
+        
         ResponseEntity<String> resp =
-    restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-String body = resp.getBody();
-System.out.println("Konnect raw body:\n" + body); // <-- crucial for debugging
+        String body = resp.getBody();
+        logger.info("Konnect raw body:\n{}", body);
 
 // Defensive parse: don't bind the whole thing at once
 com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(body);
