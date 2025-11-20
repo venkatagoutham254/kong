@@ -4,10 +4,11 @@ import com.aforo.apigee.dto.ApigeeCustomer;
 import com.aforo.apigee.dto.response.ApiProductResponse;
 import com.aforo.apigee.dto.response.DeveloperAppResponse;
 import com.aforo.apigee.dto.response.DeveloperResponse;
+import com.aforo.apigee.model.ConnectionConfig;
+import com.aforo.apigee.repository.ConnectionConfigRepository;
 import com.aforo.apigee.service.ServiceAccountManager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.auth.oauth2.GoogleCredentials;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,7 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -29,37 +29,45 @@ public class RealApigeeGateway implements ApigeeGateway {
     private final String saJsonPath;
     private final ObjectMapper objectMapper;
     private final ServiceAccountManager serviceAccountManager;
+    private final ConnectionConfigRepository connectionConfigRepository;
     
     public RealApigeeGateway(
             @Value("${aforo.apigee.base-url}") String baseUrl,
             @Value("${aforo.apigee.sa-json-path}") String saJsonPath,
             ObjectMapper objectMapper,
-            ServiceAccountManager serviceAccountManager) {
+            ServiceAccountManager serviceAccountManager,
+            ConnectionConfigRepository connectionConfigRepository) {
         this.saJsonPath = saJsonPath;
         this.objectMapper = objectMapper;
         this.serviceAccountManager = serviceAccountManager;
+        this.connectionConfigRepository = connectionConfigRepository;
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .build();
     }
     
-    private String getAccessToken() {
+    private String getAccessToken(String org) {
         try {
-            GoogleCredentials credentials = GoogleCredentials
-                    .fromStream(new FileInputStream(saJsonPath))
-                    .createScoped(Arrays.asList("https://www.googleapis.com/auth/cloud-platform"));
-            credentials.refreshIfExpired();
-            return credentials.getAccessToken().getTokenValue();
+            // Try to get service account JSON from database first (for AWS/production)
+            Optional<ConnectionConfig> configOpt = connectionConfigRepository.findByOrg(org);
+            if (configOpt.isPresent() && configOpt.get().getServiceAccountJson() != null) {
+                log.debug("Using service account JSON from database for org: {}", org);
+                return serviceAccountManager.getAccessTokenFromJson(configOpt.get().getServiceAccountJson());
+            }
+            
+            // Fall back to file path (for local development)
+            log.debug("Using service account JSON from file path: {}", saJsonPath);
+            return serviceAccountManager.getAccessTokenFromPath(saJsonPath);
         } catch (IOException e) {
-            log.error("Failed to get access token", e);
-            throw new RuntimeException("Failed to authenticate with Google", e);
+            log.error("Failed to get access token for org: {}", org, e);
+            throw new RuntimeException("Failed to authenticate with Google: " + e.getMessage(), e);
         }
     }
     
     @Override
     public List<ApiProductResponse> listApiProducts(String org) {
         log.info("RealApigeeGateway: Listing API products for org: {}", org);
-        String token = getAccessToken();
+        String token = getAccessToken(org);
         
         try {
             // First, get list of product names
@@ -119,7 +127,7 @@ public class RealApigeeGateway implements ApigeeGateway {
     @Override
     public List<DeveloperResponse> listDevelopers(String org) {
         log.info("RealApigeeGateway: Listing developers for org: {}", org);
-        String token = getAccessToken();
+        String token = getAccessToken(org);
         
         try {
             String response = webClient.get()
@@ -175,7 +183,7 @@ public class RealApigeeGateway implements ApigeeGateway {
     @Override
     public List<DeveloperAppResponse> listDeveloperApps(String org, String developerId) {
         log.info("RealApigeeGateway: Listing apps for developer: {} in org: {}", developerId, org);
-        String token = getAccessToken();
+        String token = getAccessToken(org);
         
         try {
             log.info("Making request to: /v1/organizations/{}/developers/{}/apps", org, developerId);
@@ -286,7 +294,7 @@ public class RealApigeeGateway implements ApigeeGateway {
     @Override
     public void writeAppAttributes(String org, String appId, Map<String, String> attributes) {
         log.info("RealApigeeGateway: Writing attributes to app: {} in org: {}", appId, org);
-        String token = getAccessToken();
+        String token = getAccessToken(org);
         
         try {
             // Build attributes array for Apigee API
@@ -446,7 +454,7 @@ public class RealApigeeGateway implements ApigeeGateway {
     @Override
     public List<ApigeeCustomer> fetchDevelopers(String org, String env) {
         log.info("RealApigeeGateway: Fetching developers from Apigee for org: {}", org);
-        String token = getAccessToken();
+        String token = getAccessToken(org);
         
         try {
             String response = webClient.get()
