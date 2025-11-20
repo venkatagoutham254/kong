@@ -27,5 +27,3 @@ databaseChangeLog:
       file: db/changelog/020-create-apigee-tables.yaml
   - include:
       file: db/changelog/021-add-source-to-kong-product.yaml
-  - include:
-      file: db/changelog/changes/004-fix-kong-product-unique-constraint.yaml
