@@ -67,6 +67,7 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
+  packages-to-scan: aforo.kong.controller
 
 logging:
   level:
