@@ -1,0 +1,327 @@
+openapi: 3.0.3
+info:
+  title: Aforo Apigee Integration API
+  version: 1.0.0
+  description: API for integrating Apigee with Aforo billing system
+servers:
+  - url: http://localhost:8086
+    description: Local development server
+paths:
+  /api/integrations/apigee/connections:
+    post:
+      summary: Save & test Apigee connection
+      operationId: saveConnection
+      tags:
+        - Apigee Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveConnectionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+
+  /api/integrations/apigee/products:
+    get:
+      summary: List Apigee API Products
+      operationId: listProducts
+      tags:
+        - Apigee Integration
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiProductResponse'
+
+  /api/integrations/apigee/developers:
+    get:
+      summary: List Apigee Developers
+      operationId: listDevelopers
+      tags:
+        - Apigee Integration
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeveloperResponse'
+
+  /api/integrations/apigee/developers/{developerId}/apps:
+    get:
+      summary: List Apps for a Developer
+      operationId: listDeveloperApps
+      tags:
+        - Apigee Integration
+      parameters:
+        - in: path
+          name: developerId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeveloperAppResponse'
+
+  /api/integrations/apigee/developers/{developerId}/link:
+    post:
+      summary: Link Apigee Developer to Aforo Customer
+      operationId: linkDeveloper
+      tags:
+        - Apigee Integration
+      parameters:
+        - in: path
+          name: developerId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkDeveloperRequest'
+      responses:
+        '200':
+          description: Linked
+
+  /api/integrations/apigee/mappings/subscriptions:
+    post:
+      summary: Create DRAFT Subscription for (App × Product) and write back attributes
+      operationId: createMapping
+      tags:
+        - Apigee Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMappingRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MappingResponse'
+
+  /api/integrations/apigee/authorize:
+    post:
+      summary: Authorization decision for runtime
+      operationId: authorize
+      tags:
+        - Apigee Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizeDecision'
+
+  /api/integrations/apigee/webhooks/usage:
+    post:
+      summary: Ingest usage from Apigee (HMAC verified)
+      operationId: ingestUsage
+      tags:
+        - Apigee Integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsageWebhookEvent'
+      responses:
+        '202':
+          description: Accepted
+
+components:
+  schemas:
+    SaveConnectionRequest:
+      type: object
+      required: [org, envs, analyticsMode, hmacSecret, saJsonPath]
+      properties:
+        org:
+          type: string
+        envs:
+          type: string
+          description: "CSV e.g. dev,stage,prod"
+        analyticsMode:
+          type: string
+          enum: [WEBHOOK, BIGQUERY]
+        hmacSecret:
+          type: string
+        saJsonPath:
+          type: string
+
+    ConnectionResponse:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        message:
+          type: string
+
+    ApiProductResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        quota:
+          type: string
+        resources:
+          type: array
+          items:
+            type: string
+
+    DeveloperResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+
+    DeveloperAppResponse:
+      type: object
+      properties:
+        appId:
+          type: string
+        name:
+          type: string
+        products:
+          type: array
+          items:
+            type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+
+    LinkDeveloperRequest:
+      type: object
+      required: [aforoCustomerId]
+      properties:
+        aforoCustomerId:
+          type: string
+
+    CreateMappingRequest:
+      type: object
+      required: [developerApp, apiProduct, aforoProductId, ratePlanId, billingType]
+      properties:
+        developerApp:
+          type: string
+        apiProduct:
+          type: string
+        aforoProductId:
+          type: integer
+          format: int64
+        ratePlanId:
+          type: integer
+          format: int64
+        billingType:
+          type: string
+          enum: [PREPAID, POSTPAID]
+
+    MappingResponse:
+      type: object
+      properties:
+        subscriptionId:
+          type: integer
+          format: int64
+        ratePlanId:
+          type: integer
+          format: int64
+        appId:
+          type: string
+        wroteBackAttributes:
+          type: boolean
+
+    AuthorizeRequest:
+      type: object
+      required: [org, env, developerApp, apiProduct, method, path]
+      properties:
+        org:
+          type: string
+        env:
+          type: string
+        developerApp:
+          type: string
+        apiProduct:
+          type: string
+        method:
+          type: string
+        path:
+          type: string
+
+    AuthorizeDecision:
+      type: object
+      properties:
+        allow:
+          type: boolean
+        reason:
+          type: string
+        subscriptionId:
+          type: integer
+          format: int64
+        ratePlanId:
+          type: integer
+          format: int64
+
+    UsageWebhookEvent:
+      type: object
+      required: [ts, developerApp, apiProduct, method, path, status]
+      properties:
+        ts:
+          type: string
+          format: date-time
+        apiproxy:
+          type: string
+        developerApp:
+          type: string
+        apiProduct:
+          type: string
+        method:
+          type: string
+        path:
+          type: string
+        status:
+          type: integer
+        latencyMs:
+          type: integer
+        bytesOut:
+          type: integer
+        extras:
+          type: object
+          additionalProperties:
+            type: string

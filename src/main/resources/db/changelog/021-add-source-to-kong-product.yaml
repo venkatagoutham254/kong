@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 021-add-source-to-kong-product
+      author: system
+      changes:
+        - addColumn:
+            tableName: kong_product
+            columns:
+              - column:
+                  name: source
+                  type: VARCHAR(50)
+                  defaultValue: kong
+                  constraints:
+                    nullable: false

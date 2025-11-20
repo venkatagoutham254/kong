@@ -45,6 +45,9 @@ public class KongProduct {
     @Column(name = "portals_json", columnDefinition = "TEXT")
     private String portalsJson;
 
-    @Column(nullable = false)
+    @Column(name = "organization_id", nullable = false)
     private Long organizationId;
+    
+    @Column(name = "source", nullable = false)
+    private String source = "kong"; // Default source is kong
 }

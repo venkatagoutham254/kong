@@ -1,0 +1,219 @@
+databaseChangeLog:
+  - changeSet:
+      id: 020-create-apigee-tables
+      author: system
+      changes:
+        # Connection Configs table
+        - createTable:
+            tableName: connection_configs
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: envs_csv
+                  type: VARCHAR(500)
+              - column:
+                  name: analytics_mode
+                  type: VARCHAR(50)
+              - column:
+                  name: service_account_json
+                  type: TEXT
+              - column:
+                  name: hmac_secret
+                  type: VARCHAR(255)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Imported Products table
+        - createTable:
+            tableName: imported_products
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: apigee_product_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aforo_product_id
+                  type: BIGINT
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: VARCHAR(50)
+                  defaultValue: APIGEE
+              - column:
+                  name: product_type
+                  type: VARCHAR(50)
+                  defaultValue: API
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Developer Links table
+        - createTable:
+            tableName: developer_links
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: apigee_developer_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: aforo_customer_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # App Mappings table
+        - createTable:
+            tableName: app_mappings
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: developer_app
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: api_product
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subscription_id
+                  type: BIGINT
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Usage Events table
+        - createTable:
+            tableName: usage_events
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: developer_app
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: api_product
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: usage_count
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        # Add indexes
+        - createIndex:
+            tableName: imported_products
+            indexName: idx_imported_products_org
+            columns:
+              - column:
+                  name: organization_id
+        
+        - createIndex:
+            tableName: developer_links
+            indexName: idx_developer_links_org
+            columns:
+              - column:
+                  name: organization_id
+        
+        - createIndex:
+            tableName: app_mappings
+            indexName: idx_app_mappings_org
+            columns:
+              - column:
+                  name: organization_id
+        
+        - createIndex:
+            tableName: usage_events
+            indexName: idx_usage_events_org
+            columns:
+              - column:
+                  name: organization_id

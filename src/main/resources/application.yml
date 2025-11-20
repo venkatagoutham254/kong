@@ -24,18 +24,6 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    operationsSorter: method
-    tagsSorter: alpha
-
-logging:
-  level:
-    org.springframework.web.client.RestTemplate: INFO
-
 aforo:
   base-url: ${AFORO_BASE_URL:http://44.201.19.187:8081}
   jwt:
@@ -49,9 +37,45 @@ aforo:
     allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     allowed-headers: "Authorization,Content-Type,X-Organization-Id"
     allow-credentials: true
+  
+  # Apigee configuration
+  apigee:
+    org: ${APIGEE_ORG:aforo-aadhaar-477607}
+    base-url: ${APIGEE_BASE:https://apigee.googleapis.com}
+    project-id: ${APIGEE_PROJECT_ID:aforo-aadhaar-477607}
+    sa-json-path: ${APIGEE_SA_JSON_PATH:/app/service-account.json}
+    analytics-mode: ${APIGEE_ANALYTICS:STANDARD}
+    fake: ${APIGEE_FAKE:false}
+  
+  product:
+    service:
+      url: ${PRODUCT_SERVICE_URL:http://3.208.93.68:8080}
+
+  hmac:
+    secret: ${AFORO_HMAC_SECRET:change-me}
+
+  services:
+    subscription: ${SUBSCRIPTION_SERVICE_URL:http://44.201.19.187:8081}
+    product: ${PRODUCT_SERVICE_URL:http://3.208.93.68:8080}
+    rateplan: ${RATEPLAN_SERVICE_URL:http://3.208.93.68:8080}
+    customer: ${CUSTOMER_SERVICE_URL:http://44.201.19.187:8081}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
+logging:
+  level:
+    org.springframework.web.client.RestTemplate: INFO
+    com.aforo.apigee: DEBUG
+
 # Kong Integration Configuration
 kong:
-  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://localhost:8081/mock/api/details}
+  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://44.201.19.187:8081/mock/api/details}
   integration:
     enabled: true
     default-admin-url: https://api.konghq.com

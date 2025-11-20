@@ -21,3 +21,9 @@ databaseChangeLog:
       file: db/changelog/009-create-usage-record.yaml
   - include:
       file: db/changelog/010-create-pricing-plan.yaml
+  - include:
+      file: db/changelog/011-update-client-api-details.yaml
+  - include:
+      file: db/changelog/020-create-apigee-tables.yaml
+  - include:
+      file: db/changelog/021-add-source-to-kong-product.yaml

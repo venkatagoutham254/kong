@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -67,19 +69,25 @@ public class KongIntegrationController {
     @PostMapping("/ingest")
     @Operation(summary = "Ingest usage events", 
                description = "Receives HTTP Log events from Kong (single or batched)")
-    public ResponseEntity<Void> ingestUsageEvents(@RequestBody Object payload) {
+    public ResponseEntity<Void> ingestUsageEvents(
+            @RequestBody Object payload,
+            Authentication authentication) {
         try {
+            // Extract organization ID from JWT token
+            Long organizationId = extractOrganizationId(authentication);
+            logger.info("Processing usage events for organization: {}", organizationId);
+            
             if (payload instanceof List) {
                 // Batch of events
                 @SuppressWarnings("unchecked")
                 List<KongEventDTO> events = (List<KongEventDTO>) payload;
-                logger.info("Received batch of {} usage events", events.size());
-                integrationService.ingestUsageEvents(events);
+                logger.info("Received batch of {} usage events for org {}", events.size(), organizationId);
+                integrationService.ingestUsageEvents(events, organizationId);
             } else {
                 // Single event
                 KongEventDTO event = (KongEventDTO) payload;
-                logger.debug("Received single usage event");
-                integrationService.ingestUsageEvent(event);
+                logger.debug("Received single usage event for org {}", organizationId);
+                integrationService.ingestUsageEvent(event, organizationId);
             }
             return ResponseEntity.accepted().build();
         } catch (Exception e) {
@@ -128,11 +136,16 @@ public class KongIntegrationController {
     @PostMapping("/suspend")
     @Operation(summary = "Suspend consumer", 
                description = "Suspends a consumer by moving to suspended group or adding request-termination plugin")
-    public ResponseEntity<Void> suspendConsumer(@Valid @RequestBody SuspendRequestDTO request) {
-        logger.info("Suspending consumer: {} with mode: {}", request.getConsumerId(), request.getMode());
+    public ResponseEntity<Void> suspendConsumer(
+            @Valid @RequestBody SuspendRequestDTO request,
+            Authentication authentication) {
         try {
-            integrationService.suspendConsumer(request);
-            return ResponseEntity.ok().build();
+            // Extract organization ID from JWT token
+            Long organizationId = extractOrganizationId(authentication);
+            logger.info("Suspending consumer: {} for organization: {}", request.getConsumerId(), organizationId);
+            
+            integrationService.suspendConsumer(request, organizationId);
+            return ResponseEntity.accepted().build();
         } catch (Exception e) {
             logger.error("Failed to suspend consumer", e);
             if (e.getMessage().contains("not found")) {
@@ -149,11 +162,15 @@ public class KongIntegrationController {
     @Operation(summary = "Resume consumer", 
                description = "Resumes a suspended consumer by restoring their original group and removing termination plugins")
     public ResponseEntity<Void> resumeConsumer(
-            @Parameter(description = "Consumer ID") @PathVariable String consumerId) {
-        logger.info("Resuming consumer: {}", consumerId);
+            @Parameter(description = "Consumer ID") @PathVariable String consumerId,
+            Authentication authentication) {
         try {
-            integrationService.resumeConsumer(consumerId);
-            return ResponseEntity.ok().build();
+            // Extract organization ID from JWT token
+            Long organizationId = extractOrganizationId(authentication);
+            logger.info("Resuming consumer: {} for organization: {}", consumerId, organizationId);
+            
+            integrationService.resumeConsumer(consumerId, organizationId);
+            return ResponseEntity.accepted().build();
         } catch (Exception e) {
             logger.error("Failed to resume consumer", e);
             if (e.getMessage().contains("not found")) {
@@ -174,6 +191,17 @@ public class KongIntegrationController {
         status.setKongReachable(true); // TODO: Implement actual health check
         status.setStatus("healthy");
         return ResponseEntity.ok(status);
+    }
+    
+    /**
+     * Extract organization ID from JWT token
+     */
+    private Long extractOrganizationId(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt) {
+            Jwt jwt = (Jwt) authentication.getPrincipal();
+            return jwt.getClaim("orgId");
+        }
+        throw new IllegalArgumentException("Invalid authentication or missing organization ID");
     }
     
     @Data
