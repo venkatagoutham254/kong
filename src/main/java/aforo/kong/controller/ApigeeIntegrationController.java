@@ -78,10 +78,11 @@ public class ApigeeIntegrationController {
                description = "Import only selected Apigee products with their assigned product types. Organization ID is extracted from JWT token.")
     public ResponseEntity<SelectiveImportResponse> importSelectedProducts(
             @Valid @RequestBody SelectiveProductImportRequest request) {
-        // Get organization ID from JWT token (set by JwtTenantFilter)
-        Long organizationId = TenantContext.require();
-        log.info("Starting selective product import for {} products for organization {}", 
-                 request.getSelectedProducts().size(), organizationId);
+        try {
+            // Get organization ID from JWT token (set by JwtTenantFilter)
+            Long organizationId = TenantContext.require();
+            log.info("Starting selective product import for {} products for organization {}", 
+                     request.getSelectedProducts().size(), organizationId);
         
         SelectiveImportResponse.SelectiveImportResponseBuilder responseBuilder = SelectiveImportResponse.builder();
         List<SelectiveImportResponse.ImportedProductDetail> importedProducts = new ArrayList<>();
@@ -141,6 +142,16 @@ public class ApigeeIntegrationController {
         log.info("Selective import completed: {} successful, {} failed", successCount, failCount);
         
         return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error in Apigee import: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(SelectiveImportResponse.builder()
+                .totalSelected(0)
+                .successfullyImported(0)
+                .failed(0)
+                .message("Error: " + e.getMessage())
+                .importedProducts(new ArrayList<>())
+                .build());
+        }
     }
     
     @PostMapping("/sync")
