@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,9 +39,14 @@ public class ExternalApiServiceImpl implements ExternalApiService {
     private final KongProductMapper productMapper;
     private final ObjectMapper objectMapper;
     private final ClientApiDetailsRepository clientApiDetailsRepository;
+    
+    @Value("${aforo.product.service.url:http://3.208.93.68:8080}")
+    private String productServiceUrl;
+    
     public ExternalApiServiceImpl(RestTemplate restTemplate,
                                   KongProductRepository productRepository,
-                                  KongProductMapper productMapper,ClientApiDetailsRepository clientApiDetailsRepository,
+                                  KongProductMapper productMapper,
+                                  ClientApiDetailsRepository clientApiDetailsRepository,
                                   ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.productRepository = productRepository;
@@ -315,19 +321,44 @@ productResponse = tmp;
                 KongProduct kongProduct = productRepository.findByIdAndOrganizationId(productId, organizationId)
                     .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
                 
-                // Prepare product data for product/rateplan service
-                Map<String, Object> productData = new HashMap<>();
-                productData.put("external_id", kongProduct.getId());
-                productData.put("name", kongProduct.getName());
-                productData.put("description", kongProduct.getDescription());
-                productData.put("source", "kong"); // Set source as kong
-                productData.put("product_type", "API"); // Auto-set product type as API
-                productData.put("organization_id", organizationId);
+                // Call product catalog service to import
+                Map<String, Object> importRequest = new HashMap<>();
+                importRequest.put("productName", kongProduct.getName());
+                importRequest.put("productDescription", kongProduct.getDescription() != null ? kongProduct.getDescription() : "Imported from Kong");
+                importRequest.put("source", "KONG");
+                importRequest.put("externalId", kongProduct.getId());
+                importRequest.put("internalSkuCode", "KONG-" + kongProduct.getId());
+                importRequest.put("productType", "API");
                 
-                // TODO: Call product/rateplan service to save the product
-                // For now, we'll just collect the data
-                importedProducts.add(productData);
-                successCount++;
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("X-Organization-Id", organizationId.toString());
+                
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(importRequest, headers);
+                String catalogUrl = productServiceUrl + "/api/products/import";
+                
+                try {
+                    ResponseEntity<Map> response = restTemplate.postForEntity(catalogUrl, entity, Map.class);
+                    Map<String, Object> responseBody = response.getBody();
+                    
+                    Map<String, Object> productData = new HashMap<>();
+                    productData.put("external_id", kongProduct.getId());
+                    productData.put("name", kongProduct.getName());
+                    productData.put("description", kongProduct.getDescription());
+                    productData.put("source", "kong");
+                    productData.put("product_type", "API");
+                    productData.put("organization_id", organizationId);
+                    if (responseBody != null) {
+                        productData.put("catalog_product_id", responseBody.get("productId"));
+                    }
+                    
+                    importedProducts.add(productData);
+                    successCount++;
+                    logger.info("Successfully imported Kong product {} to catalog", productId);
+                } catch (Exception e) {
+                    logger.error("Failed to call catalog service for product {}: {}", productId, e.getMessage());
+                    failureCount++;
+                }
                 
                 logger.info("Prepared Kong product {} for import", productId);
             } catch (Exception e) {
