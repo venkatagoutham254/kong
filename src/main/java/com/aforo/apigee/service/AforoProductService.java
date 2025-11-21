@@ -20,7 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Slf4j
 public class AforoProductService {
     
-    @Value("${aforo.product.service.url:http://localhost:8081}")
+    @Value("${aforo.product.service.url:http://3.208.93.68:8080}")
     private String productServiceUrl;
     
     private final RestTemplate restTemplate;
