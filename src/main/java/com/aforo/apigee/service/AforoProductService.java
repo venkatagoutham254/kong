@@ -134,13 +134,20 @@ public class AforoProductService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Organization-Id", organizationId.toString());
             
-            // Forward JWT token from current request
-            String jwtToken = getJwtTokenFromRequest();
-            log.info("JWT token present: {}", jwtToken != null);
-            if (jwtToken != null) {
-                headers.set("Authorization", jwtToken);
+            // Get JWT token EXACTLY like Kong does
+            String authHeader = null;
+            try {
+                ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+                authHeader = attr.getRequest().getHeader("Authorization");
+                log.info("Got Authorization header: {}", authHeader != null ? "YES" : "NO");
+            } catch (Exception e) {
+                log.error("Could not get Authorization header: {}", e.getMessage());
+            }
+            
+            if (authHeader != null) {
+                headers.set("Authorization", authHeader);
             } else {
-                log.error("No JWT token found in request context!");
+                log.error("No Authorization header found in request!");
             }
             
             HttpEntity<ProductImportRequest> entity = new HttpEntity<>(request, headers);
