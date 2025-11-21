@@ -2,7 +2,7 @@ package aforo.kong.controller;
 
 import com.aforo.apigee.dto.request.*;
 import com.aforo.apigee.dto.response.*;
-import com.aforo.apigee.security.TenantContext;
+import aforo.kong.tenant.TenantContext;
 import com.aforo.apigee.service.AforoProductService;
 import com.aforo.apigee.service.AuthorizeService;
 import com.aforo.apigee.service.InventoryService;
@@ -79,12 +79,7 @@ public class ApigeeIntegrationController {
     public ResponseEntity<SelectiveImportResponse> importSelectedProducts(
             @Valid @RequestBody SelectiveProductImportRequest request) {
         // Get organization ID from JWT token (set by JwtTenantFilter)
-        Long organizationId = TenantContext.getTenantId();
-        // For testing without JWT, use a default organization ID
-        if (organizationId == null) {
-            organizationId = 1L; // Default for testing
-            log.warn("No organization ID found in JWT context, using default: {}", organizationId);
-        }
+        Long organizationId = TenantContext.require();
         log.info("Starting selective product import for {} products for organization {}", 
                  request.getSelectedProducts().size(), organizationId);
         
@@ -154,7 +149,7 @@ public class ApigeeIntegrationController {
     public ResponseEntity<SyncResponse> syncProductsToAforo(
             @RequestParam(required = false) String org) {
         // Get organization ID from JWT token
-        Long organizationId = TenantContext.getTenantId();
+        Long organizationId = TenantContext.require();
         log.info("Starting product sync from Apigee to Aforo for organization: {}", organizationId);
         
         try {
