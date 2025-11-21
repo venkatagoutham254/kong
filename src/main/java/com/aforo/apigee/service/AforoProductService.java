@@ -123,8 +123,11 @@ public class AforoProductService {
                 .source("APIGEE")
                 .externalId(apigeeProduct.getName())
                 .internalSkuCode("APIGEE-" + apigeeProduct.getName())
-                .productType(ProductType.API)  // Auto-set product type as API
+                .productType(productType)  // Use the provided product type
                 .build();
+            
+            log.info("Import request: productName={}, externalId={}, productType={}", 
+                request.getProductName(), request.getExternalId(), request.getProductType());
             
             // Set headers
             HttpHeaders headers = new HttpHeaders();
@@ -133,8 +136,11 @@ public class AforoProductService {
             
             // Forward JWT token from current request
             String jwtToken = getJwtTokenFromRequest();
+            log.info("JWT token present: {}", jwtToken != null);
             if (jwtToken != null) {
                 headers.set("Authorization", jwtToken);
+            } else {
+                log.error("No JWT token found in request context!");
             }
             
             HttpEntity<ProductImportRequest> entity = new HttpEntity<>(request, headers);
