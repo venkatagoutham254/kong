@@ -26,6 +26,9 @@ spring:
 
 aforo:
   base-url: ${AFORO_BASE_URL:http://44.201.19.187:8081}
+  product:
+    service:
+      url: ${PRODUCT_SERVICE_URL:http://3.208.93.68:8080}
   jwt:
     issuer: aforo-kong
     secret: ${JWT_SECRET:change-me-please-change-me-32-bytes-min}  # env var or fallback
