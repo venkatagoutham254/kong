@@ -3,7 +3,9 @@ package aforo.kong.controller;
 import com.aforo.apigee.dto.request.*;
 import com.aforo.apigee.dto.response.*;
 import aforo.kong.tenant.TenantContext;
+import aforo.kong.dto.ApigeeImportRequest;
 import com.aforo.apigee.service.AforoProductService;
+import com.aforo.apigee.dto.ProductType;
 import com.aforo.apigee.service.AuthorizeService;
 import com.aforo.apigee.service.InventoryService;
 import com.aforo.apigee.service.MappingService;
@@ -77,7 +79,7 @@ public class ApigeeIntegrationController {
     @Operation(summary = "Import selected products with assigned types", 
                description = "Import only selected Apigee products with their assigned product types. Organization ID is extracted from JWT token.")
     public ResponseEntity<SelectiveImportResponse> importSelectedProducts(
-            @RequestBody SelectiveProductImportRequest request) {
+            @RequestBody ApigeeImportRequest request) {
         try {
             log.info("Received import request: {}", request);
             
@@ -105,25 +107,27 @@ public class ApigeeIntegrationController {
         int successCount = 0;
         int failCount = 0;
         
-        for (SelectiveProductImportRequest.SelectedProduct selectedProduct : request.getSelectedProducts()) {
+        for (ApigeeImportRequest.ApigeeProduct selectedProduct : request.getSelectedProducts()) {
             try {
                 // Create ApiProductResponse from selected product
-                // Note: quota and resources are not needed for import, only name and displayName
                 ApiProductResponse apiProduct = ApiProductResponse.builder()
                     .name(selectedProduct.getProductName())
                     .displayName(selectedProduct.getDisplayName())
                     .build();
                 
+                // Convert string to ProductType enum
+                ProductType productType = ProductType.valueOf(selectedProduct.getProductType());
+                
                 // Push to Aforo with the selected product type
                 ProductImportResponse response = aforoProductService.pushProductToAforo(
                     apiProduct,
-                    selectedProduct.getProductType(),
+                    productType,
                     organizationId
                 );
                 
                 importedProducts.add(SelectiveImportResponse.ImportedProductDetail.builder()
                     .productName(selectedProduct.getProductName())
-                    .productType(selectedProduct.getProductType().toString())
+                    .productType(selectedProduct.getProductType())
                     .status("SUCCESS")
                     .message(response.getMessage())
                     .productId(response.getProductId())
@@ -136,7 +140,7 @@ public class ApigeeIntegrationController {
                 
                 importedProducts.add(SelectiveImportResponse.ImportedProductDetail.builder()
                     .productName(selectedProduct.getProductName())
-                    .productType(selectedProduct.getProductType().toString())
+                    .productType(selectedProduct.getProductType())
                     .status("FAILED")
                     .message(e.getMessage())
                     .build());
