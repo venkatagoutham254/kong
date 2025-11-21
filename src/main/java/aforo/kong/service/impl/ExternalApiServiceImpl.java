@@ -334,6 +334,21 @@ productResponse = tmp;
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("X-Organization-Id", organizationId.toString());
                 
+                // Get JWT token from current request
+                String authHeader = null;
+                try {
+                    org.springframework.web.context.request.ServletRequestAttributes attr = 
+                        (org.springframework.web.context.request.ServletRequestAttributes) 
+                        org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes();
+                    authHeader = attr.getRequest().getHeader("Authorization");
+                } catch (Exception e) {
+                    logger.warn("Could not get Authorization header from request context");
+                }
+                
+                if (authHeader != null) {
+                    headers.set("Authorization", authHeader);
+                }
+                
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(importRequest, headers);
                 String catalogUrl = productServiceUrl + "/api/products/import";
                 
