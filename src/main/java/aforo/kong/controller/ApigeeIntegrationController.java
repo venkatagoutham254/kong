@@ -77,7 +77,7 @@ public class ApigeeIntegrationController {
     @Operation(summary = "Import selected products with assigned types", 
                description = "Import only selected Apigee products with their assigned product types. Organization ID is extracted from JWT token.")
     public ResponseEntity<SelectiveImportResponse> importSelectedProducts(
-            @Valid @RequestBody SelectiveProductImportRequest request) {
+            @RequestBody SelectiveProductImportRequest request) {
         try {
             // Get organization ID from JWT token (set by JwtTenantFilter)
             Long organizationId = TenantContext.require();
