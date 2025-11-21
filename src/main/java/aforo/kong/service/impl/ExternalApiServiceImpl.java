@@ -150,8 +150,14 @@ public List<KongProductResponse> fetchProductsFromDb(Long clientDetailsId) {
     Long organizationId = TenantContext.require();
     logger.info("Fetching products from DB for organization: {} using clientDetailsId: {}", organizationId, clientDetailsId);
     
-    ClientApiDetails details = clientApiDetailsRepository.findByIdAndOrganizationId(clientDetailsId, organizationId)
-        .orElseThrow(() -> new RuntimeException("ClientApiDetails not found for id: " + clientDetailsId + " and organization: " + organizationId));
+    // Find client details - use findById for now since organization_id may not be set in all records
+    ClientApiDetails details = clientApiDetailsRepository.findById(clientDetailsId)
+        .orElseThrow(() -> new RuntimeException("ClientApiDetails not found for id: " + clientDetailsId));
+    
+    // Verify organization matches if organization_id is set
+    if (details.getOrganizationId() != null && !details.getOrganizationId().equals(organizationId)) {
+        throw new RuntimeException("ClientApiDetails " + clientDetailsId + " does not belong to organization " + organizationId);
+    }
 
     String url = buildUrl(details.getBaseUrl(), details.getEndpoint());
     logger.info("Calling Kong URL: {}", url);
