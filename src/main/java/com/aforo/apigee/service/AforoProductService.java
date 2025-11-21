@@ -114,7 +114,7 @@ public class AforoProductService {
                  apigeeProduct.getName(), productType);
         
         try {
-            // Build request with product type
+            // Build request WITHOUT productType (catalog service doesn't accept it)
             ProductImportRequest request = ProductImportRequest.builder()
                 .productName(apigeeProduct.getDisplayName() != null 
                     ? apigeeProduct.getDisplayName() 
@@ -123,7 +123,7 @@ public class AforoProductService {
                 .source("APIGEE")
                 .externalId(apigeeProduct.getName())
                 .internalSkuCode("APIGEE-" + apigeeProduct.getName())
-                .productType(productType)  // Use the provided product type
+                // Do NOT set productType - catalog service doesn't accept it
                 .build();
             
             log.info("Import request: productName={}, externalId={}, productType={}", 
