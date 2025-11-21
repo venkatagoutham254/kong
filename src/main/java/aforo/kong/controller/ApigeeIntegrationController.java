@@ -79,8 +79,23 @@ public class ApigeeIntegrationController {
     public ResponseEntity<SelectiveImportResponse> importSelectedProducts(
             @RequestBody SelectiveProductImportRequest request) {
         try {
+            log.info("Received import request: {}", request);
+            
             // Get organization ID from JWT token (set by JwtTenantFilter)
             Long organizationId = TenantContext.require();
+            
+            // Validate request
+            if (request == null || request.getSelectedProducts() == null || request.getSelectedProducts().isEmpty()) {
+                log.error("Invalid request: request={}, selectedProducts={}", request, request != null ? request.getSelectedProducts() : "null");
+                return ResponseEntity.badRequest().body(SelectiveImportResponse.builder()
+                    .totalSelected(0)
+                    .successfullyImported(0)
+                    .failed(0)
+                    .message("Error: selectedProducts cannot be null or empty")
+                    .importedProducts(new ArrayList<>())
+                    .build());
+            }
+            
             log.info("Starting selective product import for {} products for organization {}", 
                      request.getSelectedProducts().size(), organizationId);
         
