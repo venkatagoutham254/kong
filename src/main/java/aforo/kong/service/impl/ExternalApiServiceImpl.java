@@ -10,10 +10,6 @@ import aforo.kong.repository.ClientApiDetailsRepository;
 import aforo.kong.repository.KongProductRepository;
 import aforo.kong.service.ExternalApiService;
 import aforo.kong.tenant.TenantContext;
-import com.aforo.apigee.service.AforoProductService;
-import com.aforo.apigee.dto.response.ApiProductResponse;
-import com.aforo.apigee.dto.response.ProductImportResponse;
-import com.aforo.apigee.dto.ProductType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,20 +38,15 @@ public class ExternalApiServiceImpl implements ExternalApiService {
     private final KongProductMapper productMapper;
     private final ObjectMapper objectMapper;
     private final ClientApiDetailsRepository clientApiDetailsRepository;
-    private final AforoProductService aforoProductService;
-    
     public ExternalApiServiceImpl(RestTemplate restTemplate,
                                   KongProductRepository productRepository,
-                                  KongProductMapper productMapper,
-                                  ClientApiDetailsRepository clientApiDetailsRepository,
-                                  ObjectMapper objectMapper,
-                                  AforoProductService aforoProductService) {
+                                  KongProductMapper productMapper,ClientApiDetailsRepository clientApiDetailsRepository,
+                                  ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.productRepository = productRepository;
         this.productMapper = productMapper;
         this.clientApiDetailsRepository = clientApiDetailsRepository;
         this.objectMapper = objectMapper;
-        this.aforoProductService = aforoProductService;
     }
 
     @Override
@@ -324,29 +315,17 @@ productResponse = tmp;
                 KongProduct kongProduct = productRepository.findByIdAndOrganizationId(productId, organizationId)
                     .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
                 
-                // Convert Kong product to ApiProductResponse format for Aforo service
-                ApiProductResponse apiProduct = ApiProductResponse.builder()
-                    .name(kongProduct.getId()) // Use external ID as name
-                    .displayName(kongProduct.getName())
-                    .build();
-                
-                // Push to Aforo ProductRatePlanService
-                ProductImportResponse response = aforoProductService.pushProductToAforo(
-                    apiProduct,
-                    ProductType.API, // Auto-set as API
-                    organizationId
-                );
-                
-                // Prepare response data
+                // Prepare product data for product/rateplan service
                 Map<String, Object> productData = new HashMap<>();
                 productData.put("external_id", kongProduct.getId());
                 productData.put("name", kongProduct.getName());
                 productData.put("description", kongProduct.getDescription());
-                productData.put("source", "kong");
-                productData.put("product_type", "API");
+                productData.put("source", "kong"); // Set source as kong
+                productData.put("product_type", "API"); // Auto-set product type as API
                 productData.put("organization_id", organizationId);
-                productData.put("catalog_product_id", response.getProductId()); // ID from catalog service
                 
+                // TODO: Call product/rateplan service to save the product
+                // For now, we'll just collect the data
                 importedProducts.add(productData);
                 successCount++;
                 
