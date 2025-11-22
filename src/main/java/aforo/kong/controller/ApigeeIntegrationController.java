@@ -109,14 +109,24 @@ public class ApigeeIntegrationController {
         
         for (ApigeeImportRequest.ApigeeProduct selectedProduct : request.getSelectedProducts()) {
             try {
+                // Auto-assign displayName if not provided (use productName)
+                String displayName = selectedProduct.getDisplayName() != null && !selectedProduct.getDisplayName().isEmpty()
+                    ? selectedProduct.getDisplayName()
+                    : selectedProduct.getProductName();
+                
+                // Auto-assign productType to API if not provided
+                String productTypeStr = selectedProduct.getProductType() != null && !selectedProduct.getProductType().isEmpty()
+                    ? selectedProduct.getProductType()
+                    : "API";
+                
                 // Create ApiProductResponse from selected product
                 ApiProductResponse apiProduct = ApiProductResponse.builder()
                     .name(selectedProduct.getProductName())
-                    .displayName(selectedProduct.getDisplayName())
+                    .displayName(displayName)
                     .build();
                 
                 // Convert string to ProductType enum
-                ProductType productType = ProductType.valueOf(selectedProduct.getProductType());
+                ProductType productType = ProductType.valueOf(productTypeStr);
                 
                 // Push to Aforo with the selected product type
                 ProductImportResponse response = aforoProductService.pushProductToAforo(
@@ -127,7 +137,7 @@ public class ApigeeIntegrationController {
                 
                 importedProducts.add(SelectiveImportResponse.ImportedProductDetail.builder()
                     .productName(selectedProduct.getProductName())
-                    .productType(selectedProduct.getProductType())
+                    .productType(productTypeStr)
                     .status("SUCCESS")
                     .message(response.getMessage())
                     .productId(response.getProductId())

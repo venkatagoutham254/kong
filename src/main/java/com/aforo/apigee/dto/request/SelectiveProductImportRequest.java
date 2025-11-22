@@ -27,8 +27,9 @@ public class SelectiveProductImportRequest {
     private String org;  // Optional Apigee org
     
     /**
-     * Individual product selection with type assignment
-     * User only needs to provide: productName, displayName, and productType
+     * Individual product selection
+     * User only needs to provide: productName (like Kong only asks for ID)
+     * displayName and productType are auto-assigned
      */
     @Data
     @Builder
@@ -39,10 +40,10 @@ public class SelectiveProductImportRequest {
         @NotNull(message = "Product name is required")
         private String productName;
         
-        @NotNull(message = "Display name is required")
+        // displayName is optional - will use productName if not provided
         private String displayName;
         
-        @NotNull(message = "Product type is required")
+        // productType is optional - defaults to API
         private ProductType productType;
     }
 }
