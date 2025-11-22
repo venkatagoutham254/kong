@@ -16,6 +16,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 @Slf4j
 public class AforoProductService {
@@ -114,22 +117,20 @@ public class AforoProductService {
                  apigeeProduct.getName(), productType);
         
         try {
-            // Build request WITHOUT productType (catalog service doesn't accept it)
-            ProductImportRequest request = ProductImportRequest.builder()
-                .productName(apigeeProduct.getDisplayName() != null 
-                    ? apigeeProduct.getDisplayName() 
-                    : apigeeProduct.getName())
-                .productDescription("Imported from Apigee")
-                .source("APIGEE")
-                .externalId(apigeeProduct.getName())
-                .internalSkuCode("APIGEE-" + apigeeProduct.getName())
-                // Do NOT set productType - catalog service doesn't accept it
-                .build();
+            // Build request using Map EXACTLY like Kong does
+            Map<String, Object> importRequest = new HashMap<>();
+            importRequest.put("productName", apigeeProduct.getDisplayName() != null 
+                ? apigeeProduct.getDisplayName() 
+                : apigeeProduct.getName());
+            importRequest.put("productDescription", "Imported from Apigee");
+            importRequest.put("source", "APIGEE");
+            importRequest.put("externalId", apigeeProduct.getName());
+            importRequest.put("internalSkuCode", "APIGEE-" + apigeeProduct.getName());
             
-            log.info("Import request: productName={}, externalId={}, productType={}", 
-                request.getProductName(), request.getExternalId(), request.getProductType());
+            log.info("Import request: productName={}, externalId={}", 
+                importRequest.get("productName"), importRequest.get("externalId"));
             
-            // Set headers
+            // Set headers EXACTLY like Kong
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-Organization-Id", organizationId.toString());
@@ -137,7 +138,9 @@ public class AforoProductService {
             // Get JWT token EXACTLY like Kong does
             String authHeader = null;
             try {
-                ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+                org.springframework.web.context.request.ServletRequestAttributes attr = 
+                    (org.springframework.web.context.request.ServletRequestAttributes) 
+                    org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes();
                 authHeader = attr.getRequest().getHeader("Authorization");
                 log.info("Got Authorization header: {}", authHeader != null ? "YES" : "NO");
             } catch (Exception e) {
@@ -150,7 +153,7 @@ public class AforoProductService {
                 log.error("No Authorization header found in request!");
             }
             
-            HttpEntity<ProductImportRequest> entity = new HttpEntity<>(request, headers);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(importRequest, headers);
             
             // Call Aforo import endpoint
             String url = productServiceUrl + "/api/products/import";
@@ -158,21 +161,29 @@ public class AforoProductService {
             log.info("===== CALLING CATALOG =====");
             log.info("URL: {}", url);
             log.info("Auth header present: {}", headers.containsKey("Authorization"));
-            log.info("Body: productName={}, externalId={}", request.getProductName(), request.getExternalId());
             
-            ResponseEntity<ProductImportResponse> response = restTemplate.postForEntity(
+            ResponseEntity<Map> response = restTemplate.postForEntity(
                 url,
                 entity,
-                ProductImportResponse.class
+                Map.class
             );
             
-            ProductImportResponse result = response.getBody();
+            Map<String, Object> responseBody = response.getBody();
             
-            log.info("✅ Successfully pushed product {} with type {} to Aforo. Status: {}, Product ID: {}", 
-                     apigeeProduct.getName(), 
-                     productType,
-                     result != null ? result.getStatus() : "UNKNOWN", 
-                     result != null ? result.getProductId() : "N/A");
+            log.info("✅ Successfully pushed product {} to Aforo. Response: {}", 
+                     apigeeProduct.getName(), responseBody);
+            
+            // Build ProductImportResponse from Map response
+            ProductImportResponse result = new ProductImportResponse();
+            if (responseBody != null) {
+                result.setProductId(responseBody.get("productId") != null ? 
+                    ((Number) responseBody.get("productId")).longValue() : null);
+                result.setProductName((String) responseBody.get("productName"));
+                result.setStatus((String) responseBody.get("status"));
+                result.setMessage((String) responseBody.get("message"));
+                result.setSource((String) responseBody.get("source"));
+                result.setExternalId((String) responseBody.get("externalId"));
+            }
             
             return result;
             
