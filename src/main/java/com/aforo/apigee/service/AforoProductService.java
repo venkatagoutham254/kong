@@ -155,6 +155,11 @@ public class AforoProductService {
             // Call Aforo import endpoint
             String url = productServiceUrl + "/api/products/import";
             
+            log.info("===== CALLING CATALOG =====");
+            log.info("URL: {}", url);
+            log.info("Auth header present: {}", headers.containsKey("Authorization"));
+            log.info("Body: productName={}, externalId={}", request.getProductName(), request.getExternalId());
+            
             ResponseEntity<ProductImportResponse> response = restTemplate.postForEntity(
                 url,
                 entity,
@@ -175,6 +180,7 @@ public class AforoProductService {
             log.error("❌ Failed to push product {} to Aforo: {}", 
                      apigeeProduct.getName(), 
                      e.getMessage());
+            log.error("Full error: ", e);
             throw new RuntimeException("Failed to push product to Aforo", e);
         }
     }
