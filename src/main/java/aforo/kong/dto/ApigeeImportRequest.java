@@ -1,11 +1,13 @@
 package aforo.kong.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 public class ApigeeImportRequest {
     
     @JsonProperty("selectedProducts")
+    @Schema(description = "List of products to import", required = true)
     private List<ApigeeProduct> selectedProducts;
     
     public List<ApigeeProduct> getSelectedProducts() {
@@ -18,12 +20,15 @@ public class ApigeeImportRequest {
     
     public static class ApigeeProduct {
         @JsonProperty("productName")
+        @Schema(description = "Product name (REQUIRED - only field needed)", required = true, example = "testing 4")
         private String productName;
         
         @JsonProperty("displayName")
+        @Schema(description = "Display name (OPTIONAL - auto-assigned from productName if not provided)", required = false, example = "")
         private String displayName;
         
         @JsonProperty("productType")
+        @Schema(description = "Product type (OPTIONAL - auto-assigned as 'API' if not provided)", required = false, example = "")
         private String productType;
         
         public String getProductName() {

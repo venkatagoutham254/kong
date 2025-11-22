@@ -11,12 +11,14 @@ import com.aforo.apigee.service.InventoryService;
 import com.aforo.apigee.service.MappingService;
 import com.aforo.apigee.service.UsageService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -68,7 +70,9 @@ public class ApigeeIntegrationController {
     }
     
     @GetMapping("/products")
-    @Operation(summary = "List Apigee API Products")
+    @Operation(summary = "List Apigee API Products",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ApiProductResponse>> listProducts(@RequestParam(required = false) String org) {
         log.info("Listing API products for org: {}", org);
         List<ApiProductResponse> products = inventoryService.getApiProducts(org);
@@ -76,8 +80,10 @@ public class ApigeeIntegrationController {
     }
     
     @PostMapping("/products/import-selected")
-    @Operation(summary = "Import selected products with assigned types", 
-               description = "Import only selected Apigee products with their assigned product types. Organization ID is extracted from JWT token.")
+    @Operation(summary = "Import selected Apigee products", 
+               description = "Import Apigee products. Only productName is required - displayName and productType are auto-assigned. Organization ID is extracted from JWT token.",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SelectiveImportResponse> importSelectedProducts(
             @RequestBody ApigeeImportRequest request) {
         try {
