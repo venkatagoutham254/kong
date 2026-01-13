@@ -60,6 +60,11 @@ aforo:
     rateplan: ${RATEPLAN_SERVICE_URL:http://3.208.93.68:8080}
     customer: ${CUSTOMER_SERVICE_URL:http://44.201.19.187:8081}
 
+# Encryption configuration for Konnect PAT tokens
+encryption:
+  secret:
+    key: ${ENCRYPTION_SECRET_KEY:1iFXQiVbIvMYG84vLmHkL1d7dPPUw14/ulqw0B9x5fY=}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -77,6 +82,8 @@ logging:
 # Kong Integration Configuration
 kong:
   client-details-url: ${KONG_CLIENT_DETAILS_URL:http://44.201.19.187:8081/mock/api/details}
+  ingest:
+    secret: ${KONG_INGEST_SECRET:aforo-kong-secret-001}
   integration:
     enabled: true
     default-admin-url: https://api.konghq.com

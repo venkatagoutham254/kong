@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 013-create-konnect-api-product-map
+      author: aforo
+      changes:
+        - createTable:
+            tableName: konnect_api_product_map
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: org_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: konnect_api_product_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aforo_product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: name_snapshot
+                  type: VARCHAR(500)
+              - column:
+                  name: description_snapshot
+                  type: TEXT
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: 'ACTIVE'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_seen_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: konnect_api_product_map
+            columnNames: org_id, konnect_api_product_id
+            constraintName: uk_org_konnect_product

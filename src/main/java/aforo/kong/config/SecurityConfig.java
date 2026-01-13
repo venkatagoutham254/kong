@@ -61,6 +61,7 @@ public class SecurityConfig {
                         "/webjars/**",
                         "/api/health").permitAll()
                 // Allow Kong webhook endpoints without auth (Kong sends data here)
+                .requestMatchers(HttpMethod.POST, "/api/integrations/kong/ingest").permitAll()
                 .requestMatchers(HttpMethod.POST, "/integrations/kong/ingest").permitAll()
                 .requestMatchers(HttpMethod.POST, "/integrations/kong/events").permitAll()
                 // Allow Apigee webhook endpoints without auth

@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: 015-create-konnect-route-map
+      author: system
+      changes:
+        - createTable:
+            tableName: konnect_route_map
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: control_plane_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kong_route_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kong_service_id
+                  type: VARCHAR(255)
+              - column:
+                  name: aforo_endpoint_id
+                  type: BIGINT
+              - column:
+                  name: name
+                  type: VARCHAR(500)
+              - column:
+                  name: methods
+                  type: TEXT
+              - column:
+                  name: paths
+                  type: TEXT
+              - column:
+                  name: hosts
+                  type: TEXT
+              - column:
+                  name: protocols
+                  type: TEXT
+              - column:
+                  name: tags
+                  type: TEXT
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  defaultValue: ACTIVE
+              - column:
+                  name: last_seen_at
+                  type: TIMESTAMP
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addUniqueConstraint:
+            tableName: konnect_route_map
+            columnNames: organization_id, control_plane_id, kong_route_id
+            constraintName: uk_konnect_route_map_org_cp_kong_id
+        - createIndex:
+            tableName: konnect_route_map
+            indexName: idx_konnect_route_map_org_service
+            columns:
+              - column:
+                  name: organization_id
+              - column:
+                  name: kong_service_id
