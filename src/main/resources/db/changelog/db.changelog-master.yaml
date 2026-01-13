@@ -27,3 +27,15 @@ databaseChangeLog:
       file: db/changelog/020-create-apigee-tables.yaml
   - include:
       file: db/changelog/021-add-source-to-kong-product.yaml
+  - include:
+      file: db/changelog/013-create-konnect-api-product-map.yaml
+  - include:
+      file: db/changelog/014-create-konnect-service-map.yaml
+  - include:
+      file: db/changelog/015-create-konnect-route-map.yaml
+  - include:
+      file: db/changelog/016-create-konnect-consumer-map.yaml
+  - include:
+      file: db/changelog/017-create-konnect-consumer-group-map.yaml
+  - include:
+      file: db/changelog/018-create-kong-usage-record.yaml

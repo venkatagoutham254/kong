@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 022-add-organization-id-to-connection-configs
+      author: system
+      changes:
+        # Add organization_id column to connection_configs table
+        - addColumn:
+            tableName: connection_configs
+            columns:
+              - column:
+                  name: organization_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true  # Initially nullable to allow existing data
+        
+        # Add index on organization_id for better query performance
+        - createIndex:
+            tableName: connection_configs
+            indexName: idx_connection_configs_org
+            columns:
+              - column:
+                  name: organization_id
+        
+        # Add unique constraint on organization_id (one connection per organization)
+        - addUniqueConstraint:
+            tableName: connection_configs
+            columnNames: organization_id
+            constraintName: uk_connection_configs_org_id
+      
+      rollback:
+        - dropUniqueConstraint:
+            tableName: connection_configs
+            constraintName: uk_connection_configs_org_id
+        - dropIndex:
+            tableName: connection_configs
+            indexName: idx_connection_configs_org
+        - dropColumn:
+            tableName: connection_configs
+            columnName: organization_id

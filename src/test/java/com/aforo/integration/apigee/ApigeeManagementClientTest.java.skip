@@ -1,0 +1,167 @@
+package com.aforo.integration.apigee;
+
+import com.aforo.integration.apigee.client.ApigeeManagementClient;
+import com.aforo.integration.apigee.client.ApigeeManagementClientImpl;
+import com.aforo.integration.apigee.dto.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient.RequestHeadersUriSpec;
+import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
+import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for Apigee Management Client.
+ */
+@ExtendWith(MockitoExtension.class)
+class ApigeeManagementClientTest {
+    
+    @Mock
+    private WebClient webClient;
+    
+    @Mock
+    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+    
+    @Mock
+    private WebClient.RequestHeadersSpec requestHeadersSpec;
+    
+    @Mock
+    private WebClient.ResponseSpec responseSpec;
+    
+    @Mock
+    private ApigeeProperties properties;
+    
+    private ApigeeManagementClient client;
+    
+    @BeforeEach
+    void setUp() {
+        when(properties.getOrg()).thenReturn("test-org");
+        when(properties.getEnv()).thenReturn("test");
+        
+        client = new ApigeeManagementClientImpl(webClient, properties);
+    }
+    
+    @Test
+    void testGetOrganization() {
+        // Given
+        ApigeeOrgInfo orgInfo = ApigeeOrgInfo.builder()
+            .name("test-org")
+            .environments(List.of("test", "prod"))
+            .displayName("Test Organization")
+            .build();
+        
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(ApigeeOrgInfo.class)).thenReturn(Mono.just(orgInfo));
+        
+        // When & Then
+        StepVerifier.create(client.getOrganization())
+            .expectNext(orgInfo)
+            .verifyComplete();
+    }
+    
+    @Test
+    void testListApis() {
+        // Given
+        List<String> apis = List.of("payment-api", "user-api", "product-api");
+        
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(any(Class.class))).thenReturn(Mono.just(apis));
+        
+        // When & Then
+        StepVerifier.create(client.listApis())
+            .expectNext("payment-api")
+            .expectNext("user-api")
+            .expectNext("product-api")
+            .verifyComplete();
+    }
+    
+    @Test
+    void testGetApiProduct() {
+        // Given
+        ApigeeApiProduct product = ApigeeApiProduct.builder()
+            .name("SILVER_PRODUCT")
+            .displayName("Silver Product")
+            .quotaLimit("1000")
+            .quotaInterval("1")
+            .quotaTimeUnit("day")
+            .proxies(List.of("payment-api", "user-api"))
+            .build();
+        
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(ApigeeApiProduct.class)).thenReturn(Mono.just(product));
+        
+        // When & Then
+        StepVerifier.create(client.getApiProduct("SILVER_PRODUCT"))
+            .expectNext(product)
+            .verifyComplete();
+    }
+    
+    @Test
+    void testGetDeveloper() {
+        // Given
+        ApigeeDeveloper developer = ApigeeDeveloper.builder()
+            .developerId("dev123")
+            .email("dev@example.com")
+            .firstName("John")
+            .lastName("Doe")
+            .apps(List.of("app1", "app2"))
+            .build();
+        
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(ApigeeDeveloper.class)).thenReturn(Mono.just(developer));
+        
+        // When & Then
+        StepVerifier.create(client.getDeveloper("dev@example.com"))
+            .expectNext(developer)
+            .verifyComplete();
+    }
+    
+    @Test
+    void testGetDeveloperApp() {
+        // Given
+        ApigeeApp app = ApigeeApp.builder()
+            .appId("app123")
+            .appName("test-app")
+            .developerId("dev@example.com")
+            .status("approved")
+            .apiProducts(List.of("SILVER_PRODUCT"))
+            .credentials(List.of(
+                ApigeeAppKey.builder()
+                    .consumerKey("key123")
+                    .consumerSecret("secret123")
+                    .status("approved")
+                    .apiProducts(List.of("SILVER_PRODUCT"))
+                    .build()
+            ))
+            .build();
+        
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(ApigeeApp.class)).thenReturn(Mono.just(app));
+        
+        // When & Then
+        StepVerifier.create(client.getDeveloperApp("dev@example.com", "test-app"))
+            .expectNext(app)
+            .verifyComplete();
+    }
+}
