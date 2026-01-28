@@ -23,7 +23,7 @@ import java.util.Map;
 @Slf4j
 public class AforoProductService {
     
-    @Value("${aforo.product.service.url:http://3.208.93.68:8080}")
+    @Value("${aforo.product.service.url:http://product.dev.aforo.space:8080}")
     private String productServiceUrl;
     
     private final RestTemplate restTemplate;

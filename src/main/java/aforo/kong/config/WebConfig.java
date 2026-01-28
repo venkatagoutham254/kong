@@ -18,6 +18,15 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
+                        "http://ui.dev.aforo.space",
+                        "http://product.dev.aforo.space:8080",
+                        "http://metering.dev.aforo.space:8092",
+                        "http://usage.dev.aforo.space:8081",
+                        "http://ingestion.dev.aforo.space:8088",
+                        "http://kong.dev.aforo.space:8086",
+                        "http://org.dev.aforo.space:8081",
+                        "http://quickbooks.dev.aforo.space:8095",
+                        "http://subscription.dev.aforo.space:8084",
                         "http://productscreens.s3-website-ap-northeast-1.amazonaws.com",
                         "http://localhost:3000",
                         "http://localhost:3001",
