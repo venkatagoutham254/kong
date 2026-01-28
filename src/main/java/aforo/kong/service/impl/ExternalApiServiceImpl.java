@@ -40,7 +40,7 @@ public class ExternalApiServiceImpl implements ExternalApiService {
     private final ObjectMapper objectMapper;
     private final ClientApiDetailsRepository clientApiDetailsRepository;
     
-    @Value("${aforo.product.service.url:http://3.208.93.68:8080}")
+    @Value("${aforo.product.service.url:http://product.dev.aforo.space:8080}")
     private String productServiceUrl;
     
     public ExternalApiServiceImpl(RestTemplate restTemplate,

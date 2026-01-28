@@ -25,15 +25,15 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
 aforo:
-  base-url: ${AFORO_BASE_URL:http://44.201.19.187:8081}
+  base-url: ${AFORO_BASE_URL:http://org.dev.aforo.space:8081}
   jwt:
     issuer: aforo-kong
     secret: ${JWT_SECRET:change-me-please-change-me-32-bytes-min}  # env var or fallback
     expiryMinutes: 120
   cors:
     # Comma-separated list; used by SecurityConfig.corsConfigurationSource()
-    # Include your frontend origin(s). Add https variants if applicable.
-    allowed-origins: "http://13.115.248.133,http://localhost:3000,http://54.221.164.5"
+    # Include your frontend origin(s) and service origins. Add https variants if applicable.
+    allowed-origins: "http://ui.dev.aforo.space,http://product.dev.aforo.space:8080,http://metering.dev.aforo.space:8092,http://usage.dev.aforo.space:8081,http://ingestion.dev.aforo.space:8088,http://kong.dev.aforo.space:8086,http://org.dev.aforo.space:8081,http://quickbooks.dev.aforo.space:8095,http://subscription.dev.aforo.space:8084,http://13.115.248.133,http://localhost:3000,http://54.221.164.5"
     allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     allowed-headers: "Authorization,Content-Type,X-Organization-Id"
     allow-credentials: true
@@ -49,16 +49,16 @@ aforo:
   
   product:
     service:
-      url: ${PRODUCT_SERVICE_URL:http://3.208.93.68:8080}
+      url: ${PRODUCT_SERVICE_URL:http://product.dev.aforo.space:8080}
 
   hmac:
     secret: ${AFORO_HMAC_SECRET:change-me}
 
   services:
-    subscription: ${SUBSCRIPTION_SERVICE_URL:http://44.201.19.187:8081}
-    product: ${PRODUCT_SERVICE_URL:http://3.208.93.68:8080}
-    rateplan: ${RATEPLAN_SERVICE_URL:http://3.208.93.68:8080}
-    customer: ${CUSTOMER_SERVICE_URL:http://44.201.19.187:8081}
+    subscription: ${SUBSCRIPTION_SERVICE_URL:http://subscription.dev.aforo.space:8084}
+    product: ${PRODUCT_SERVICE_URL:http://product.dev.aforo.space:8080}
+    rateplan: ${RATEPLAN_SERVICE_URL:http://product.dev.aforo.space:8080}
+    customer: ${CUSTOMER_SERVICE_URL:http://org.dev.aforo.space:8081}
 
 # Encryption configuration for Konnect PAT tokens
 encryption:
@@ -81,7 +81,7 @@ logging:
 
 # Kong Integration Configuration
 kong:
-  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://44.201.19.187:8081/mock/api/details}
+  client-details-url: ${KONG_CLIENT_DETAILS_URL:http://org.dev.aforo.space:8081/mock/api/details}
   ingest:
     secret: ${KONG_INGEST_SECRET:aforo-kong-secret-001}
   integration:
